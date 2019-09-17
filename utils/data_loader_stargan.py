@@ -20,7 +20,7 @@ class CocoDatasetBBoxSample(Dataset):
     def __init__(self, transform, mode, select_attrs=[], datafile='datasetBoxAnn.json', out_img_size=128, bbox_out_size=64,
                  balance_classes=0, onlyrandBoxes=False, max_object_size=0., max_with_union=True, use_gt_mask=False,
                  boxrotate=0, n_boxes = 1, square_resize=0, filter_by_mincooccur = -1., only_indiv_occur = 0., augmenter_mode=0):
-        self.image_path = os.path.join('data','coco','images')
+        self.image_path = os.path.join('..', 'data','coco','images')
         self.transform = transform
         self.mode = mode
         self.n_boxes = n_boxes
@@ -60,6 +60,9 @@ class CocoDatasetBBoxSample(Dataset):
         self.imgId2idx = {imid:i for i,imid in enumerate(self.valid_ids)}
 
         self.num_data = len(self.dataset['images'])
+
+        self.safe_file = '../data/coco/images/train2014/COCO_train2014_000000189187.jpg'
+
 
     def preprocess(self):
         for i, attr in enumerate(self.dataset['categories']):
@@ -251,10 +254,13 @@ class CocoDatasetBBoxSample(Dataset):
         return tuple(returnvals)
 
     def getbyIndexAndclass(self, index, cid):
-        # try:
-        image = Image.open(os.path.join(self.image_path,self.dataset['images'][index]['filepath'], self.dataset['images'][index]['filename']))
-        # except:
-        #     return None
+        a_new_file = os.path.join(self.image_path,self.dataset['images'][index]['filepath'], self.dataset['images'][index]['filename'])
+        try:
+            image = Image.open(a_new_file)
+            self.safe_file = a_new_file
+        except:
+            an_img_path = self.safe_file
+            image = Image.open(an_img_path)
         currCls = self.selected_attrs[cid[0]]
         if image.mode != 'RGB':
             #print image.mode

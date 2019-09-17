@@ -736,20 +736,11 @@ class Solver(object):
 
         fixed_x = []
         real_c = []
-        it = iter(self.data_loader)
-        i = 0
-        while i <= 3:
-            img_labels = next(it)
-            if -1 in img_labels:
-                continue
-            else:
-                images, labels = img_labels
-                fixed_x.append(images)
-                real_c.append(labels)
-                if i == 3:
-                    break
-                i += 1
-
+        for i, (images, labels, _, _, _, _, _) in enumerate(self.data_loader):
+            fixed_x.append(images)
+            real_c.append(labels)
+            if i == 3:
+                break
 
         # Fixed inputs and target domain labels for debugging
         fixed_x = torch.cat(fixed_x, dim=0)
@@ -790,7 +781,7 @@ class Solver(object):
         cocoAndCelebset = set(['CelebA', 'coco', 'pascal'])
 
         for e in range(start, self.num_epochs):
-            for i, (real_x, real_label) in enumerate(self.data_loader):
+            for i, (real_x, real_label, _, _, _, _, _) in enumerate(self.data_loader):
                 # Generat fake labels randomly (target domain labels)
                 # plt.imshow(((real_x.numpy()[6,[0,1,2],:,:].transpose(1,2,0)+1.0)*255./2.0).astype(np.uint8)); plt.show()
                 cbsz = real_label.size(0)
@@ -823,7 +814,7 @@ class Solver(object):
                 # Compute loss with real images
                 out_src, out_cls = self.D(real_x)
                 if self.use_seperate_classifier:
-                    out_cls = self.D_cls(real_x)
+                    _, out_cls = self.D_cls(real_x)
 
                 d_loss_real = self.compute_real_fake_loss(out_src, self.adv_loss_type, datasrc='real')
 
@@ -847,7 +838,7 @@ class Solver(object):
                 fake_x = Variable(fake_x.data)
                 out_src, out_cls_fake = self.D(fake_x)
                 if self.use_seperate_classifier and self.adv_classifier:
-                    out_cls_fake = self.D_cls(fake_x)
+                    _, out_cls_fake = self.D_cls(fake_x)
 
                 d_loss_fake = self.compute_real_fake_loss(out_src, self.adv_loss_type, datasrc='fake')
 
@@ -877,19 +868,15 @@ class Solver(object):
                     self.reset_grad()
                     d_loss.backward()
                     self.d_optimizer.step()
-                    loss['D/loss_gp'] = loss['D/loss_gp'] * avgexp + (1 - avgexp) * d_loss_gp.data[
-                        0] if 'D/loss_gp' in loss else d_loss_gp.data[0]
+                    loss['D/loss_gp'] = loss['D/loss_gp'] * avgexp + (1 - avgexp) * d_loss_gp.item() if 'D/loss_gp' in loss else d_loss_gp.item()
 
                 # Logging
-                loss['D/loss_real'] = loss['D/loss_real'] * avgexp + (1 - avgexp) * d_loss_real.data[
-                    0] if 'D/loss_real' in loss else d_loss_real.data[0]
-                loss['D/loss_fake'] = loss['D/loss_fake'] * avgexp + (1 - avgexp) * d_loss_fake.data[
-                    0] if 'D/loss_fake' in loss else d_loss_fake.data[0]
+                loss['D/loss_real'] = loss['D/loss_real'] * avgexp + (1 - avgexp) * d_loss_real.item() if 'D/loss_real' in loss else d_loss_real.item()
+                loss['D/loss_fake'] = loss['D/loss_fake'] * avgexp + (1 - avgexp) * d_loss_fake.item() if 'D/loss_fake' in loss else d_loss_fake.item()
                 loss['Wass_dist'] = loss['Wass_dist'] * avgexp + (1 - avgexp) * (
-                            -d_loss_real.data[0] - d_loss_fake.data[0]) if 'Wass_dist' in loss else (
-                            -d_loss_real.data[0] - d_loss_fake.data[0])
-                loss['D/loss_cls'] = loss['D/loss_cls'] * avgexp + (1 - avgexp) * d_loss_cls.data[
-                    0] if 'D/loss_cls' in loss else d_loss_cls.data[0]
+                            -d_loss_real.item() - d_loss_fake.item()) if 'Wass_dist' in loss else (
+                            -d_loss_real.item() - d_loss_fake.item())
+                loss['D/loss_cls'] = loss['D/loss_cls'] * avgexp + (1 - avgexp) * d_loss_cls.item() if 'D/loss_cls' in loss else d_loss_cls.item()
                 # del grad, interpolated, out, out_cls, grad_l2norm, d_loss_gp, alpha
                 # gc.collect()
 
@@ -911,7 +898,8 @@ class Solver(object):
 
                     if self.dataset == 'coco':
                         fake_c = fake_label.clone()
-                    fake_x, mask = self.G(real_x, fake_c, out_diff=True)
+                    # fake_x, mask = self.G(real_x, fake_c)
+                    fake_x = self.G(real_x, fake_c)
 
                     ## Should this be detached!?
                     if self.lambda_rec:
@@ -924,20 +912,20 @@ class Solver(object):
                         g_loss_vgg = self.vggLoss(fake_x, real_x)
                         g_loss_vgg += (mask[1].mean())
                         loss['G/l_vgg'] = loss['G/l_vgg'] * avgexp + (1 - avgexp) * (
-                                    self.lambda_vggloss * g_loss_vgg.data[0]) if 'G/l_vgg' in loss else (
-                                    self.lambda_vggloss * g_loss_vgg.data[0])
+                                    self.lambda_vggloss * g_loss_vgg.item()) if 'G/l_vgg' in loss else (
+                                    self.lambda_vggloss * g_loss_vgg.item())
 
                     g_smooth_loss = 0.
                     if self.lambda_smoothloss:
                         g_smooth_loss = F.conv2d(F.pad(mask[1], (1, 1, 1, 1), mode='replicate'), smoothWeight).mean()
                         loss['G/l_sm'] = loss['G/l_sm'] * avgexp + (1 - avgexp) * (
-                                    self.lambda_smoothloss * g_smooth_loss.data[0]) if 'G/l_sm' in loss else (
-                                    self.lambda_smoothloss * g_smooth_loss.data[0])
+                                    self.lambda_smoothloss * g_smooth_loss.item()) if 'G/l_sm' in loss else (
+                                    self.lambda_smoothloss * g_smooth_loss.item())
 
                     # Compute losses
                     out_src, out_cls = self.D(fake_x)
                     if self.use_seperate_classifier:
-                        out_cls = self.D_cls(fake_x)
+                        _, out_cls = self.D_cls(fake_x)
 
                     if not self.onlymaskgen:
                         g_loss_fake = self.compute_real_fake_loss(out_src, self.adv_loss_type, loss_for='generator')
@@ -945,8 +933,8 @@ class Solver(object):
                         #    g_loss_fake = - torch.mean(out_src)
                         # else:
                         #    g_loss_fake = - out_src.view(cbsz,-1).topk(self.use_topk_patch,dim=1,largest=False)[0].mean()
-                        loss['G/loss_fake'] = loss['G/loss_fake'] * avgexp + (1 - avgexp) * g_loss_fake.data[
-                            0] if 'G/loss_fake' in loss else g_loss_fake.data[0]
+                        loss['G/loss_fake'] = loss['G/loss_fake'] * avgexp + (1 - avgexp) * g_loss_fake.item() if \
+                            'G/loss_fake' in loss else g_loss_fake.item()
                     else:
                         g_loss_fake = 0.
 
@@ -970,6 +958,7 @@ class Solver(object):
                     # Backward + Optimize
                     g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_cls * g_loss_cls + self.lambda_vggloss * g_loss_vgg + self.lambda_smoothloss * g_smooth_loss
                     # Add L1 loss to keep the difference image from going beyond boundaries
+
                     if self.differential_generator:
                         g_loss_abs = (Variable((torch.abs(fake_x.data) > 1.0).float(), requires_grad=False) * (
                             torch.abs(fake_x))).mean()
@@ -981,10 +970,8 @@ class Solver(object):
 
                     # Logging
                     if self.lambda_rec:
-                        loss['G/loss_rec'] = loss['G/loss_rec'] * avgexp + (1 - avgexp) * g_loss_rec.data[
-                            0] if 'G/loss_rec' in loss else g_loss_rec.data[0]
-                    loss['G/loss_cls'] = loss['G/loss_cls'] * avgexp + (1 - avgexp) * g_loss_cls.data[
-                        0] if 'G/loss_cls' in loss else g_loss_cls.data[0]
+                        loss['G/loss_rec'] = loss['G/loss_rec'] * avgexp + (1 - avgexp) * g_loss_rec.item() if 'G/loss_rec' in loss else g_loss_rec.item()
+                    loss['G/loss_cls'] = loss['G/loss_cls'] * avgexp + (1 - avgexp) * g_loss_cls.item() if 'G/loss_cls' in loss else g_loss_cls.item()
 
                     for p in self.D.parameters():
                         p.requires_grad = p.requires_grad_orig  #
@@ -1347,16 +1334,14 @@ class Solver(object):
                         self.reset_grad()
                         d_loss.backward()
                         self.d_optimizer.step()
-                        loss['D/l_gp'] = loss['D/l_gp'] * avgexp + (1 - avgexp) * d_loss_gp.data[
-                            0] if 'D/l_gp' in loss else d_loss_gp.data[0]
+                        loss['D/l_gp'] = loss['D/l_gp'] * avgexp + (1 - avgexp) * d_loss_gp.item() if 'D/l_gp' in loss else d_loss_gp.item()
                     # Logging
-                    loss['D/l_rf'] = loss['D/l_rf'] * avgexp + (1 - avgexp) * (d_loss_real + d_loss_fake).data[
-                        0] if 'D/l_rf' in loss else (d_loss_real + d_loss_fake).data[0]
-                    # loss['D/l_real'] = loss['D/l_real'] * avgexp + (1-avgexp ) * d_loss_real.data[0] if 'D/l_real' in loss else d_loss_real.data[0]
-                    # loss['D/l_fake'] = loss['D/l_fake'] * avgexp + (1-avgexp ) * d_loss_fake.data[0] if 'D/l_fake' in loss else d_loss_fake.data[0]
+                    loss['D/l_rf'] = loss['D/l_rf'] * avgexp + (1 - avgexp) * (d_loss_real + d_loss_fake).item() if 'D/l_rf' in loss else (d_loss_real + d_loss_fake).item()
+                    # loss['D/l_real'] = loss['D/l_real'] * avgexp + (1-avgexp ) * d_loss_real.item() if 'D/l_real' in loss else d_loss_real.item()
+                    # loss['D/l_fake'] = loss['D/l_fake'] * avgexp + (1-avgexp ) * d_loss_fake.item() if 'D/l_fake' in loss else d_loss_fake.item()
                     loss['Wass'] = loss['Wass'] * avgexp + (1 - avgexp) * (
-                                -d_loss_real.data[0] - d_loss_fake.data[0]) if 'Wass' in loss else (
-                                -d_loss_real.data[0] - d_loss_fake.data[0])
+                                -d_loss_real.item() - d_loss_fake.item()) if 'Wass' in loss else (
+                                -d_loss_real.item() - d_loss_fake.item())
 
                 if train_m and (not self.fixed_classifier):
                     if self.use_seperate_classifier:
@@ -1387,8 +1372,7 @@ class Solver(object):
                             d_comp_loss = self.compositional_loss * F.mse_loss(d_feat_fake * feat_mask,
                                                                                d_feat_real * feat_mask)
                             d_loss_cls = d_loss_cls + d_comp_loss
-                            loss['D/l_comp'] = loss['D/l_comp'] * avgexp + (1 - avgexp) * d_comp_loss.data[
-                                0] if 'D/l_cls' in loss else d_comp_loss.data[0]
+                            loss['D/l_comp'] = loss['D/l_comp'] * avgexp + (1 - avgexp) * d_comp_loss.item() if 'D/l_cls' in loss else d_comp_loss.item()
 
                     # Compute classification accuracy of the discriminator
                     if (i + 1) % self.log_step == 0:
@@ -1404,8 +1388,7 @@ class Solver(object):
                         self.reset_grad()
                         d_loss_cls.backward()
                         self.dcls_optimizer.step()
-                    loss['D/l_cls'] = loss['D/l_cls'] * avgexp + (1 - avgexp) * d_loss_cls.data[
-                        0] if 'D/l_cls' in loss else d_loss_cls.data[0]
+                    loss['D/l_cls'] = loss['D/l_cls'] * avgexp + (1 - avgexp) * d_loss_cls.item() if 'D/l_cls' in loss else d_loss_cls.item()
 
                 # ------------------------------------------------
                 # Using mask discriminator to impose mask priors
@@ -1458,10 +1441,10 @@ class Solver(object):
                         self.mask_d_optimizer.step()
                     md_loss += mask_d_loss_gp
                     if self.use_maskprior_gan and len(nnz_idx) > 0 and (not self.fixed_m):
-                        # loss['MD/l_rf'] = loss['MD/l_rf'] * avgexp + (1-avgexp ) * md_loss.data[0] if 'MD/l_rf' in loss else md_loss.data[0]
+                        # loss['MD/l_rf'] = loss['MD/l_rf'] * avgexp + (1-avgexp ) * md_loss.item() if 'MD/l_rf' in loss else md_loss.item()
                         loss['Wass_m'] = loss['Wass_m'] * avgexp + (1 - avgexp) * (
-                                    -md_loss_r.data[0] - md_loss_f.data[0]) if 'Wass_m' in loss else (
-                                    -md_loss_r.data[0] - md_loss_f.data[0])
+                                    -md_loss_r.item() - md_loss_f.item()) if 'Wass_m' in loss else (
+                                    -md_loss_r.item() - md_loss_f.item())
 
                 # del grad, interpolated, out, out_cls, grad_l2norm, d_loss_gp, alpha
                 # gc.collect()
@@ -1515,7 +1498,7 @@ class Solver(object):
                     # g_loss_vgg =0.
                     # if self.lambda_vggloss:
                     #    g_loss_vgg = self.vggLoss(fake_x, real_x)
-                    #    loss['G/l_vgg'] = loss['G/l_vgg'] * avgexp + (1-avgexp ) * (self.lambda_vggloss * g_loss_vgg.data[0]) if 'G/l_vgg' in loss else (self.lambda_vggloss*g_loss_vgg.data[0])
+                    #    loss['G/l_vgg'] = loss['G/l_vgg'] * avgexp + (1-avgexp ) * (self.lambda_vggloss * g_loss_vgg.item()) if 'G/l_vgg' in loss else (self.lambda_vggloss*g_loss_vgg.item())
 
                     if train_m:
                         m_l1_loss = 0.
@@ -1525,21 +1508,21 @@ class Solver(object):
                             m_l1_loss = torch.exp(hingeLoss).mean()
                             # m_l1_loss = hingeLoss.mean()
                             loss['M/l_l1'] = loss['M/l_l1'] * avgexp + (1 - avgexp) * (
-                                        self.lambda_maskL1loss * m_l1_loss.data[0]) if 'M/l_sm' in loss else (
-                                        self.lambda_maskL1loss * m_l1_loss.data[0])
+                                        self.lambda_maskL1loss * m_l1_loss.item()) if 'M/l_sm' in loss else (
+                                        self.lambda_maskL1loss * m_l1_loss.item())
                         m_smooth_loss = 0.
                         if self.lambda_smoothloss:
                             # Smoothing loss is a combination of l1 loss and
                             m_smooth_loss = F.conv2d(F.pad(mask, (1, 1, 1, 1), mode='replicate'), smoothWeight).mean()
                             loss['M/l_sm'] = loss['M/l_sm'] * avgexp + (1 - avgexp) * (
-                                        self.lambda_smoothloss * m_smooth_loss.data[0]) if 'M/l_sm' in loss else (
-                                        self.lambda_smoothloss * m_smooth_loss.data[0])
+                                        self.lambda_smoothloss * m_smooth_loss.item()) if 'M/l_sm' in loss else (
+                                        self.lambda_smoothloss * m_smooth_loss.item())
 
                         if self.use_maskprior_gan and len(nnz_idx) > 0:
                             mask_rf, _ = self.mask_D(mask[nnz_idx, :], mask_target[nnz_idx, :])
                             mask_loss_fake = self.compute_real_fake_loss(mask_rf, self.m_adv_loss_type,
                                                                          loss_for='generator')
-                            # loss['M/l_fake'] = loss['M/l_fake'] * avgexp + (1-avgexp ) * mask_loss_fake.data[0] if 'M/l_fake' in loss else mask_loss_fake.data[0]
+                            # loss['M/l_fake'] = loss['M/l_fake'] * avgexp + (1-avgexp ) * mask_loss_fake.item() if 'M/l_fake' in loss else mask_loss_fake.item()
                         else:
                             mask_loss_fake = 0.
 
@@ -1622,13 +1605,11 @@ class Solver(object):
                             m_loss_class = F.binary_cross_entropy(lse_scores, present_classes,
                                                                   size_average=False) / float(
                                 bsz)  # -torch.log(lse_scores[present_classes]).mean() - torch.log(1.-lse_scores[present_classes^1]).mean()
-                            loss['M/l_cls'] = loss['M/l_cls'] * avgexp + (1 - avgexp) * m_loss_class.data[
-                                0] if 'M/l_cls' in loss else m_loss_class.data[0]
+                            loss['M/l_cls'] = loss['M/l_cls'] * avgexp + (1 - avgexp) * m_loss_class.item() if 'M/l_cls' in loss else m_loss_class.item()
                         else:
                             m_loss_class = 0.
 
-                        loss['G/l_cls'] = loss['G/l_cls'] * avgexp + (1 - avgexp) * g_loss_cls.data[
-                            0] if 'G/l_cls' in loss else g_loss_cls.data[0]
+                        loss['G/l_cls'] = loss['G/l_cls'] * avgexp + (1 - avgexp) * g_loss_cls.item() if 'G/l_cls' in loss else g_loss_cls.item()
 
                     if len(fake_x) and train_g:
                         if self.d_local_supervision:
@@ -1656,7 +1637,7 @@ class Solver(object):
                             g_loss_rec = 0.  # F.smooth_l1_loss(fake_x,real_x[reasonable_masks,::]) if self.lambda_rec and not self.only_random_boxes_discr else 0.
                             g_loss_vgg = 0.  # self.vggLoss(fake_x, real_x[reasonable_masks,::]) if self.lambda_vggloss and not self.only_random_boxes_discr else 0.
                             # if self.lambda_rec and not self.only_random_boxes_discr:
-                            #    loss['G/l_rec']  = loss['G/l_rec']  * avgexp + (1-avgexp ) * g_loss_rec.data[0]  if 'G/l_rec'  in loss else g_loss_rec.data[0]
+                            #    loss['G/l_rec']  = loss['G/l_rec']  * avgexp + (1-avgexp ) * g_loss_rec.item()  if 'G/l_rec'  in loss else g_loss_rec.item()
 
                     if train_m and train_g:
                         gm_loss = g_loss_fake + self.lambda_cls * g_loss_cls + self.lambda_smoothloss * m_smooth_loss + self.lambda_maskfake_loss * mask_loss_fake + self.lambda_maskL1loss * m_l1_los + m_loss_classs
@@ -1676,13 +1657,12 @@ class Solver(object):
                                 dim=2)  # (mask>0.1).float().mean(dim=2).mean(dim=2)
                             m_l1_loss = torch.exp(hingeLoss).mean()
                             loss['M/l_l1'] = loss['M/l_l1'] * avgexp + (1 - avgexp) * (
-                                        self.lambda_maskL1loss * m_l1_loss.data[0]) if 'M/l_sm' in loss else (
-                                        self.lambda_maskL1loss * m_l1_loss.data[0])
+                                        self.lambda_maskL1loss * m_l1_loss.item()) if 'M/l_sm' in loss else (
+                                        self.lambda_maskL1loss * m_l1_loss.item())
                             m_loss = g_loss_fake + self.lambda_smoothloss * m_smooth_loss + self.lambda_maskfake_loss * mask_loss_fake + self.lambda_maskL1loss * m_l1_loss + m_loss_class
                         else:
                             m_loss = g_loss_fake + self.lambda_cls * g_loss_cls + self.lambda_smoothloss * m_smooth_loss + self.lambda_maskfake_loss * mask_loss_fake + self.lambda_maskL1loss * m_l1_loss + m_loss_class
-                            loss['G/l_fak'] = loss['G/l_fak'] * avgexp + (1 - avgexp) * g_loss_fake.data[
-                                0] if 'G/l_fk' in loss else g_loss_fake.data[0]
+                            loss['G/l_fak'] = loss['G/l_fak'] * avgexp + (1 - avgexp) * g_loss_fake.item() if 'G/l_fk' in loss else g_loss_fake.item()
                         m_loss.backward()
                         self.e_optimizer.step()
                     elif train_g:
@@ -1694,8 +1674,8 @@ class Solver(object):
                                 g_tv_loss = (
                                     torch.abs(F.conv2d(F.pad(fake_x, (1, 1, 1, 1), mode='replicate'), tvWeight))).mean()
                                 loss['G/l_tv'] = loss['G/l_tv'] * avgexp + (1 - avgexp) * (
-                                            self.lambda_tvloss * g_tv_loss.data[0]) if 'G/l_tv' in loss else (
-                                            self.lambda_tvloss * g_tv_loss.data[0])
+                                            self.lambda_tvloss * g_tv_loss.item()) if 'G/l_tv' in loss else (
+                                            self.lambda_tvloss * g_tv_loss.item())
                             else:
                                 g_tv_loss = 0.
                             g_loss = 2 * g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_vggloss * g_loss_vgg + self.lambda_tvloss * g_tv_loss
@@ -1719,20 +1699,20 @@ class Solver(object):
                                 g_tv_loss = (
                                     torch.abs(F.conv2d(F.pad(fake_x, (1, 1, 1, 1), mode='replicate'), tvWeight))).mean()
                                 loss['G/l_tv'] = loss['G/l_tv'] * avgexp + (1 - avgexp) * (
-                                            self.lambda_tvloss * g_tv_loss.data[0]) if 'G/l_tv' in loss else (
-                                            self.lambda_tvloss * g_tv_loss.data[0])
+                                            self.lambda_tvloss * g_tv_loss.item()) if 'G/l_tv' in loss else (
+                                            self.lambda_tvloss * g_tv_loss.item())
                             else:
                                 g_tv_loss = 0.
 
                             g_loss_vgg = self.vggLoss(fake_x, real_x) if self.lambda_vggloss else 0.
                             if self.lambda_vggloss:
                                 loss['G/l_vgg'] = loss['G/l_vgg'] * avgexp + (1 - avgexp) * (
-                                            self.lambda_vggloss * g_loss_vgg.data[0]) if 'G/l_vgg' in loss else (
-                                            self.lambda_vggloss * g_loss_vgg.data[0])
+                                            self.lambda_vggloss * g_loss_vgg.item()) if 'G/l_vgg' in loss else (
+                                            self.lambda_vggloss * g_loss_vgg.item())
                             if self.lambda_rec:
                                 loss['G/l_rec'] = loss['G/l_rec'] * avgexp + (1 - avgexp) * self.lambda_rec * \
-                                                  g_loss_rec.data[0] if 'G/l_rec' in loss else self.lambda_rec * \
-                                                                                               g_loss_rec.data[0]
+                                                  g_loss_rec.item() if 'G/l_rec' in loss else self.lambda_rec * \
+                                                                                               g_loss_rec.item()
                             dInp_fake_x = fake_x if not self.discrim_masked_image else torch.cat(
                                 [fake_x, fake_x * randmask], dim=1)
                             out_src, _ = self.D(dInp_fake_x)
@@ -1760,7 +1740,7 @@ class Solver(object):
 
                     # Logging
                     # if self.lambda_rec:
-                    #    loss['G/l_rec']  = loss['G/l_rec']  * avgexp + (1-avgexp ) * g_loss_rec.data[0]  if 'G/l_rec'  in loss else g_loss_rec.data[0]
+                    #    loss['G/l_rec']  = loss['G/l_rec']  * avgexp + (1-avgexp ) * g_loss_rec.item()  if 'G/l_rec'  in loss else g_loss_rec.item()
                     for p in self.D.parameters():
                         p.requires_grad = p.requires_grad_orig  #
 
@@ -2084,19 +2064,15 @@ class Solver(object):
                         self.reset_grad()
                         d_loss.backward()
                         self.d_optimizer.step()
-                        loss['D/l_gp'] = loss['D/l_gp'] * avgexp + (1 - avgexp) * d_loss_gp.data[
-                            0] if 'D/_gp' in loss else d_loss_gp.data[0]
+                        loss['D/l_gp'] = loss['D/l_gp'] * avgexp + (1 - avgexp) * d_loss_gp.item() if 'D/_gp' in loss else d_loss_gp.item()
 
                     loss['W_dist'] = loss['W_dist'] * avgexp + (1 - avgexp) * \
-                                     (torch.mean(out_src_sel) - torch.mean(out_src_fake)).data[
-                                         0] if 'W_dist' in loss else \
-                    (torch.mean(out_src_sel) - torch.mean(out_src_fake)).data[0]
+                                     (torch.mean(out_src_sel) - torch.mean(out_src_fake)).item() if 'W_dist' in loss else \
+                    (torch.mean(out_src_sel) - torch.mean(out_src_fake)).item()
                     # Logging
-                    loss['D/l_real'] = loss['D/l_real'] * avgexp + (1 - avgexp) * d_loss_real.data[
-                        0] if 'D/l_real' in loss else d_loss_real.data[0]
-                    loss['D/l_fake'] = loss['D/l_fake'] * avgexp + (1 - avgexp) * d_loss_fake.data[
-                        0] if 'D/l_fake' in loss else d_loss_fake.data[0]
-                    # loss['D/loss_cls']  = loss['D/loss_cls']  * avgexp + (1-avgexp ) * d_loss_cls.data[0]  if 'D/loss_cls'  in loss else d_loss_cls.data[0]
+                    loss['D/l_real'] = loss['D/l_real'] * avgexp + (1 - avgexp) * d_loss_real.item() if 'D/l_real' in loss else d_loss_real.item()
+                    loss['D/l_fake'] = loss['D/l_fake'] * avgexp + (1 - avgexp) * d_loss_fake.item() if 'D/l_fake' in loss else d_loss_fake.item()
+                    # loss['D/loss_cls']  = loss['D/loss_cls']  * avgexp + (1-avgexp ) * d_loss_cls.item()  if 'D/loss_cls'  in loss else d_loss_cls.item()
                     # del grad, interpolated, out, out_cls, grad_l2norm, d_loss_gp, alpha
                     # gc.collect()
 
@@ -2155,7 +2131,7 @@ class Solver(object):
                         g_loss_cls = F.binary_cross_entropy_with_logits(
                             out_cls.view(cbsz, -1), fake_boxlabel, size_average=False) / cbsz
                         loss['G/l_cls'] = loss['G/l_cls'] * avgexp + (1 - avgexp) * (
-                        g_loss_cls.data[0]) if 'G/l_vgg' in loss else (g_loss_cls.data[0])
+                        g_loss_cls.item()) if 'G/l_vgg' in loss else (g_loss_cls.item())
 
                     # Backward + Optimize
                     g_loss = 2 * g_loss_fake + self.lambda_rec * g_loss_rec + g_loss_cls
@@ -2168,8 +2144,8 @@ class Solver(object):
 
                         g_loss = g_loss + self.lambda_vggloss * g_loss_vgg
                         loss['G/l_vgg'] = loss['G/l_vgg'] * avgexp + (1 - avgexp) * (
-                                    self.lambda_vggloss * g_loss_vgg.data[0]) if 'G/l_vgg' in loss else (
-                                    self.lambda_vggloss * g_loss_vgg.data[0])
+                                    self.lambda_vggloss * g_loss_vgg.item()) if 'G/l_vgg' in loss else (
+                                    self.lambda_vggloss * g_loss_vgg.item())
 
                     if self.lambda_feat_match:
                         _, _, out_feat_real = self.D(real_x, self.getRandBoxWith(real_x, bbox))
@@ -2183,8 +2159,8 @@ class Solver(object):
 
                         g_loss = g_loss + self.lambda_feat_match * g_loss_feat
                         loss['G/l_feat'] = loss['G/l_feat'] * avgexp + (1 - avgexp) * (
-                                    self.lambda_feat_match * g_loss_feat.data[0]) if 'G/l_feat' in loss else (
-                                    self.lambda_feat_match * g_loss_feat.data[0])
+                                    self.lambda_feat_match * g_loss_feat.item()) if 'G/l_feat' in loss else (
+                                    self.lambda_feat_match * g_loss_feat.item())
 
                     # Add L1 loss to keep the difference image from going beyond boundaries
                     self.reset_grad()
@@ -2196,12 +2172,10 @@ class Solver(object):
 
                     # Logging
                     if not self.only_reconst_loss:
-                        loss['G/l_fake'] = loss['G/l_fake'] * avgexp + (1 - avgexp) * g_loss_fake.data[
-                            0] if 'G/l_fake' in loss else g_loss_fake.data[0]
+                        loss['G/l_fake'] = loss['G/l_fake'] * avgexp + (1 - avgexp) * g_loss_fake.item() if 'G/l_fake' in loss else g_loss_fake.item()
                     if self.lambda_rec:
-                        loss['G/l_rec'] = loss['G/l_rec'] * avgexp + (1 - avgexp) * self.lambda_rec * g_loss_rec.data[
-                            0] if 'G/l_rec' in loss else self.lambda_rec * g_loss_rec.data[0]
-                    # loss['G/loss_cls']  = loss['G/loss_cls']  * avgexp + (1-avgexp ) * g_loss_cls.data[0]  if 'G/loss_cls'  in loss else g_loss_cls.data[0]
+                        loss['G/l_rec'] = loss['G/l_rec'] * avgexp + (1 - avgexp) * self.lambda_rec * g_loss_rec.item() if 'G/l_rec' in loss else self.lambda_rec * g_loss_rec.item()
+                    # loss['G/loss_cls']  = loss['G/loss_cls']  * avgexp + (1-avgexp ) * g_loss_cls.item()  if 'G/loss_cls'  in loss else g_loss_cls.item()
                     for p in self.D.parameters():
                         p.requires_grad = True  #
                     if self.E is not None:
@@ -2448,10 +2422,10 @@ class Solver(object):
 
             # Logging
             loss = {}
-            loss['D/loss_real'] = d_loss_real.data[0]
-            loss['D/loss_fake'] = d_loss_fake.data[0]
-            loss['D/loss_cls'] = d_loss_cls.data[0]
-            loss['D/loss_gp'] = d_loss_gp.data[0]
+            loss['D/loss_real'] = d_loss_real.item()
+            loss['D/loss_fake'] = d_loss_fake.item()
+            loss['D/loss_cls'] = d_loss_cls.item()
+            loss['D/loss_gp'] = d_loss_gp.item()
 
             # ================== Train G ================== #
             if (i + 1) % self.d_train_repeat == 0:
@@ -2489,9 +2463,9 @@ class Solver(object):
                 self.g_optimizer.step()
 
                 # Logging
-                loss['G/loss_fake'] = g_loss_fake.data[0]
-                loss['G/loss_cls'] = g_loss_cls.data[0]
-                loss['G/loss_rec'] = g_loss_rec.data[0]
+                loss['G/loss_fake'] = g_loss_fake.item()
+                loss['G/loss_cls'] = g_loss_cls.item()
+                loss['G/loss_rec'] = g_loss_rec.item()
 
             # Print out log info
             if (i + 1) % self.log_step == 0:
@@ -2548,7 +2522,7 @@ class Solver(object):
         self.G.load_state_dict(torch.load(G_path))
         self.G.eval()
 
-        for i, (real_x, real_c) in enumerate(self.data_loader):
+        for i, (real_x, real_c, _, _, _, _, _) in enumerate(self.data_loader):
             real_x = self.to_var(real_x, volatile=True)
             target_c_list = self.make_celeb_labels(real_c)
 

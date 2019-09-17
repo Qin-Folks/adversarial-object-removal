@@ -10,7 +10,7 @@ from PIL import Image
 import json
 import numpy as np
 import random
-from utils import computeIOU, computeContainment, computeUnionArea
+from .utils import computeIOU, computeContainment, computeUnionArea
 from pycocotools.coco import COCO as COCOTool
 from collections import defaultdict
 from random import shuffle
@@ -80,11 +80,11 @@ class CocoDatasetBBoxSample(Dataset):
                     boxByCls = defaultdict(list)
                     for bb in img['bboxAnn']:
                         boxByCls[bb['cid']].append(bb['bbox'])
-                    unionAreas = [computeUnionArea(boxes) for cid,boxes in boxByCls.iteritems()]
+                    unionAreas = [computeUnionArea(boxes) for cid,boxes in boxByCls.items()]
                     maxSize = max(unionAreas)
                 if maxSize < self.max_object_size:
                     validImgs.append(img)
-            print ' %d of %d images left after size filtering'%(len(validImgs), len(self.dataset['images']))
+            print(' %d of %d images left after size filtering'%(len(validImgs), len(self.dataset['images'])))
             self.dataset['images'] = validImgs
 
         self.valid_ids = [img['cocoid'] for img in self.dataset['images']]
@@ -99,7 +99,7 @@ class CocoDatasetBBoxSample(Dataset):
             fixedbbox = []
             imgSize = self.dataset['images'][i]['imgSize']
             maxSide = np.argmax(imgSize)
-            for j in xrange(len(self.dataset['images'][i]['bboxAnn'])):
+            for j in range(len(self.dataset['images'][i]['bboxAnn'])):
                 cbbox = self.dataset['images'][i]['bboxAnn'][j]
                 maxSideLen = int(float(self.out_img_size * imgSize[maxSide]) / (imgSize[1-maxSide])) if not self.square_resize else self.out_img_size
                 assert(maxSideLen >= self.out_img_size)
@@ -130,7 +130,7 @@ class CocoDatasetBBoxSample(Dataset):
                 boxByCls = defaultdict(list)
                 for bb in img['bboxAnn']:
                     boxByCls[idx2aidx[self.sattr_to_idx[self.catid2attr[bb['cid']]]]].append(bb['bbox'])
-                self.dataset['images'][i]['cls_affect'] = np.array([[min([max([computeContainment(bb1, bb2)[0] for bb1 in boxByCls[li1]]) for bb2 in boxByCls[li2]]) for li2 in xrange(n_lab_in_img)] for li1 in xrange(n_lab_in_img)])
+                self.dataset['images'][i]['cls_affect'] = np.array([[min([max([computeContainment(bb1, bb2)[0] for bb1 in boxByCls[li1]]) for bb2 in boxByCls[li2]]) for li2 in range(n_lab_in_img)] for li1 in range(n_lab_in_img)])
 
             for j, bb in enumerate(self.dataset['images'][i]['bboxAnn']):
                 #Check for IOU > 0.5 with other bbox
@@ -172,7 +172,7 @@ class CocoDatasetBBoxSample(Dataset):
                 self.dataset['images'] = [img for i,img in enumerate(self.dataset['images']) if i in allKeepIds]
 
             self.valid_ids = [img['cocoid'] for img in self.dataset['images']]
-            print ' %d images left after co_occurence filtering'%(len(self.valid_ids))
+            print(' %d images left after co_occurence filtering'%(len(self.valid_ids)))
 
         self.attToImgId = defaultdict(set)
         for i, img in enumerate(self.dataset['images']):
@@ -184,7 +184,7 @@ class CocoDatasetBBoxSample(Dataset):
             else:
                 self.attToImgId['bg'].add(i)
                 self.catsInImg[i] = ['bg']
-        self.attToImgId = {k:list(v) for k,v in self.attToImgId.iteritems()}
+        self.attToImgId = {k:list(v) for k,v in self.attToImgId.items()}
 
 
     def randomBBoxSample(self, index, max_area = -1):
@@ -225,7 +225,7 @@ class CocoDatasetBBoxSample(Dataset):
     def __getitem__(self, index):
         # In this situation ignore index and sample classes uniformly
         if self.balance_classes==1:
-            currCls = random.choice(self.attToImgId.keys())
+            currCls = random.choice(list(self.attToImgId.keys()))
             index = random.choice(self.attToImgId[currCls])
         elif self.balance_classes==2:
             currCls = random.choice(self.catsInImg[index]) if ('person' not in self.catsInImg[index]) or (random.rand()<0.2) else 'person'
@@ -261,7 +261,7 @@ class CocoDatasetBBoxSample(Dataset):
             # Sample random number of boxes between 1 and n_boxes
             c_nbox = np.random.randint(0,self.n_boxes)
             c_area = sampbbox[2]*sampbbox[3]
-            for i in xrange(c_nbox):
+            for i in range(c_nbox):
                 # Also stop at total area > 50%
                 if c_area < 0.5:
                     bsamp, _, _ = self.randomBBoxSample(index, 0.6-c_area) # Extra 10% to make the sampling easier
@@ -494,7 +494,7 @@ class ADE20k(Dataset):
             # Sample random number of boxes between 1 and n_boxes
             c_nbox = np.random.randint(0,self.n_boxes)
             c_area = sampbbox[2]*sampbbox[3]
-            for i in xrange(c_nbox):
+            for i in range(c_nbox):
                 # Also stop at total area > 50%
                 if c_area < 0.5:
                     bsamp, _, _ = self.randomBBoxSample(0.6-c_area) # Extra 10% to make the sampling easier
@@ -551,7 +551,7 @@ class ADE20k(Dataset):
         imgDb = self.dataset[index]
         segmImg = np.array(Image.open(os.path.join(self.image_path,imgDb['fpath_segm'])))-1
         presentClass = np.unique(segmImg)
-        validClass = map(lambda x: x in self.validCatIds, presentClass)
+        validClass = [x in self.validCatIds for x in presentClass]
         chosenIdx = np.random.choice(presentClass[validClass]) if np.sum(validClass) > 0 else -10
         if chosenIdx < 0:
             maskTotal = np.zeros((self.out_img_size,self.out_img_size))
@@ -595,7 +595,7 @@ class BelgaLogoBBoxSample(Dataset):
         if self.boxrotate:
             self.rotateTrans = transforms.Compose([transforms.RandomRotation(boxrotate,resample=Image.NEAREST)])
         if use_gt_mask == 1:
-            print ' Not Supported'
+            print(' Not Supported')
             assert(0)
 
         self.randHFlip = 'Flip' in transform
@@ -626,11 +626,11 @@ class BelgaLogoBBoxSample(Dataset):
                     boxByCls = defaultdict(list)
                     for bb in img['bboxAnn']:
                         boxByCls[bb['cid']].append(bb['bbox'])
-                    unionAreas = [computeUnionArea(boxes) for cid,boxes in boxByCls.iteritems()]
+                    unionAreas = [computeUnionArea(boxes) for cid,boxes in boxByCls.items()]
                     maxSize = max(unionAreas)
                 if maxSize < self.max_object_size:
                     validImgs.append(img)
-            print ' %d of %d images left after size filtering'%(len(validImgs), len(self.dataset['images']))
+            print(' %d of %d images left after size filtering'%(len(validImgs), len(self.dataset['images'])))
             self.dataset['images'] = validImgs
 
         self.valid_ids = [img['id'] for img in self.dataset['images']]
@@ -645,7 +645,7 @@ class BelgaLogoBBoxSample(Dataset):
             fixedbbox = []
             imgSize = self.dataset['images'][i]['imgSize']
             maxSide = np.argmax(imgSize)
-            for j in xrange(len(self.dataset['images'][i]['bboxAnn'])):
+            for j in range(len(self.dataset['images'][i]['bboxAnn'])):
                 cbbox = self.dataset['images'][i]['bboxAnn'][j]
                 maxSideLen = int(float(self.out_img_size * imgSize[maxSide]) / (imgSize[1-maxSide]))
                 assert(maxSideLen >= self.out_img_size)
@@ -683,7 +683,7 @@ class BelgaLogoBBoxSample(Dataset):
             else:
                 self.attToImgId['bg'].add(i)
                 self.catsInImg[i] = ['bg']
-        self.attToImgId = {k:list(v) for k,v in self.attToImgId.iteritems()}
+        self.attToImgId = {k:list(v) for k,v in self.attToImgId.items()}
 
 
     def randomBBoxSample(self, index, max_area = -1):
@@ -724,7 +724,7 @@ class BelgaLogoBBoxSample(Dataset):
     def __getitem__(self, index):
         # In this situation ignore index and sample classes uniformly
         if self.balance_classes:
-            currCls = random.choice(self.attToImgId.keys())
+            currCls = random.choice(list(self.attToImgId.keys()))
             index = random.choice(self.attToImgId[currCls])
         else:
             currCls = random.choice(self.catsInImg[index])
@@ -755,7 +755,7 @@ class BelgaLogoBBoxSample(Dataset):
             # Sample random number of boxes between 1 and n_boxes
             c_nbox = np.random.randint(0,self.n_boxes)
             c_area = sampbbox[2]*sampbbox[3]
-            for i in xrange(c_nbox):
+            for i in range(c_nbox):
                 # Also stop at total area > 50%
                 if c_area < 0.5:
                     bsamp, _, _ = self.randomBBoxSample(index, 0.6-c_area) # Extra 10% to make the sampling easier
@@ -828,7 +828,7 @@ class BelgaLogoBBoxSample(Dataset):
     def getGTMaskInp(self, index, cls, hflip=False, mask_type=None):
         what_mask = self.use_gt_mask if mask_type is None else mask_type
         if what_mask==1:
-            print 'not supported'
+            print('not supported')
             assert(0)
         elif what_mask==2:
             # Use GT boxes as input
@@ -918,11 +918,11 @@ class UnrelBBoxSample(Dataset):
                     boxByCls = defaultdict(list)
                     for bb in img['bboxAnn']:
                         boxByCls[bb['cid']].append(bb['bbox'])
-                    unionAreas = [computeUnionArea(boxes) for cid,boxes in boxByCls.iteritems()]
+                    unionAreas = [computeUnionArea(boxes) for cid,boxes in boxByCls.items()]
                     maxSize = max(unionAreas)
                 if maxSize < self.max_object_size:
                     validImgs.append(img)
-            print ' %d of %d images left after size filtering'%(len(validImgs), len(self.dataset['images']))
+            print(' %d of %d images left after size filtering'%(len(validImgs), len(self.dataset['images'])))
             self.dataset['images'] = validImgs
 
         self.valid_ids = [img['id'] for img in self.dataset['images']]
@@ -937,7 +937,7 @@ class UnrelBBoxSample(Dataset):
             fixedbbox = []
             imgSize = self.dataset['images'][i]['imgSize']
             maxSide = np.argmax(imgSize)
-            for j in xrange(len(self.dataset['images'][i]['bboxAnn'])):
+            for j in range(len(self.dataset['images'][i]['bboxAnn'])):
                 cbbox = self.dataset['images'][i]['bboxAnn'][j]
                 maxSideLen = int(float(self.out_img_size * imgSize[maxSide]) / (imgSize[1-maxSide]))
                 assert(maxSideLen >= self.out_img_size)
@@ -975,7 +975,7 @@ class UnrelBBoxSample(Dataset):
             else:
                 self.attToImgId['bg'].add(i)
                 self.catsInImg[i] = ['bg']
-        self.attToImgId = {k:list(v) for k,v in self.attToImgId.iteritems()}
+        self.attToImgId = {k:list(v) for k,v in self.attToImgId.items()}
 
 
     def randomBBoxSample(self, index, max_area = -1):
@@ -1016,7 +1016,7 @@ class UnrelBBoxSample(Dataset):
     def __getitem__(self, index):
         # In this situation ignore index and sample classes uniformly
         if self.balance_classes:
-            currCls = random.choice(self.attToImgId.keys())
+            currCls = random.choice(list(self.attToImgId.keys()))
             index = random.choice(self.attToImgId[currCls])
         else:
             currCls = random.choice(self.catsInImg[index])
@@ -1047,7 +1047,7 @@ class UnrelBBoxSample(Dataset):
             # Sample random number of boxes between 1 and n_boxes
             c_nbox = np.random.randint(0,self.n_boxes)
             c_area = sampbbox[2]*sampbbox[3]
-            for i in xrange(c_nbox):
+            for i in range(c_nbox):
                 # Also stop at total area > 50%
                 if c_area < 0.7:
                     bsamp, _, _ = self.randomBBoxSample(index, 0.8-c_area) # Extra 10% to make the sampling easier
@@ -1120,7 +1120,7 @@ class UnrelBBoxSample(Dataset):
     def getGTMaskInp(self, index, cls, hflip=False, mask_type=None):
         what_mask = self.use_gt_mask if mask_type is None else mask_type
         if what_mask==1:
-            print 'not supported'
+            print('not supported')
             assert(0)
         elif what_mask==2:
             # Use GT boxes as input
@@ -1211,11 +1211,11 @@ class OutofContextBBoxSample(Dataset):
                     boxByCls = defaultdict(list)
                     for bb in img['bboxAnn']:
                         boxByCls[bb['cid']].append(bb['bbox'])
-                    unionAreas = [computeUnionArea(boxes) for cid,boxes in boxByCls.iteritems()]
+                    unionAreas = [computeUnionArea(boxes) for cid,boxes in boxByCls.items()]
                     maxSize = max(unionAreas)
                 if maxSize < self.max_object_size:
                     validImgs.append(img)
-            print ' %d of %d images left after size filtering'%(len(validImgs), len(self.dataset['images']))
+            print(' %d of %d images left after size filtering'%(len(validImgs), len(self.dataset['images'])))
             self.dataset['images'] = validImgs
 
         self.valid_ids = [img['id'] for img in self.dataset['images']]
@@ -1230,7 +1230,7 @@ class OutofContextBBoxSample(Dataset):
             fixedbbox = []
             imgSize = self.dataset['images'][i]['imgSize']
             maxSide = np.argmax(imgSize)
-            for j in xrange(len(self.dataset['images'][i]['bboxAnn'])):
+            for j in range(len(self.dataset['images'][i]['bboxAnn'])):
                 cbbox = self.dataset['images'][i]['bboxAnn'][j]
                 maxSideLen = int(float(self.out_img_size * imgSize[maxSide]) / (imgSize[1-maxSide]))
                 assert(maxSideLen >= self.out_img_size)
@@ -1268,7 +1268,7 @@ class OutofContextBBoxSample(Dataset):
             else:
                 self.attToImgId['bg'].add(i)
                 self.catsInImg[i] = ['bg']
-        self.attToImgId = {k:list(v) for k,v in self.attToImgId.iteritems()}
+        self.attToImgId = {k:list(v) for k,v in self.attToImgId.items()}
 
 
     def randomBBoxSample(self, index, max_area = -1):
@@ -1309,7 +1309,7 @@ class OutofContextBBoxSample(Dataset):
     def __getitem__(self, index):
         # In this situation ignore index and sample classes uniformly
         if self.balance_classes:
-            currCls = random.choice(self.attToImgId.keys())
+            currCls = random.choice(list(self.attToImgId.keys()))
             index = random.choice(self.attToImgId[currCls])
         else:
             currCls = random.choice(self.catsInImg[index])
@@ -1340,7 +1340,7 @@ class OutofContextBBoxSample(Dataset):
             # Sample random number of boxes between 1 and n_boxes
             c_nbox = np.random.randint(0,self.n_boxes)
             c_area = sampbbox[2]*sampbbox[3]
-            for i in xrange(c_nbox):
+            for i in range(c_nbox):
                 # Also stop at total area > 50%
                 if c_area < 0.7:
                     bsamp, _, _ = self.randomBBoxSample(index, 0.8-c_area) # Extra 10% to make the sampling easier
@@ -1413,7 +1413,7 @@ class OutofContextBBoxSample(Dataset):
     def getGTMaskInp(self, index, cls, hflip=False, mask_type=None):
         what_mask = self.use_gt_mask if mask_type is None else mask_type
         if what_mask==1:
-            print 'not supported'
+            print('not supported')
             assert(0)
         elif what_mask==2:
             # Use GT boxes as input
@@ -1471,7 +1471,7 @@ class FlickrLogoBBoxSample(Dataset):
         if self.boxrotate:
             self.rotateTrans = transforms.Compose([transforms.RandomRotation(boxrotate,resample=Image.NEAREST)])
         if use_gt_mask == 1:
-            print ' Not Supported'
+            print(' Not Supported')
             assert(0)
 
         self.randHFlip = 'Flip' in transform
@@ -1502,11 +1502,11 @@ class FlickrLogoBBoxSample(Dataset):
                     boxByCls = defaultdict(list)
                     for bb in img['bboxAnn']:
                         boxByCls[bb['cid']].append(bb['bbox'])
-                    unionAreas = [computeUnionArea(boxes) for cid,boxes in boxByCls.iteritems()]
+                    unionAreas = [computeUnionArea(boxes) for cid,boxes in boxByCls.items()]
                     maxSize = max(unionAreas)
                 if maxSize < self.max_object_size:
                     validImgs.append(img)
-            print ' %d of %d images left after size filtering'%(len(validImgs), len(self.dataset['images']))
+            print(' %d of %d images left after size filtering'%(len(validImgs), len(self.dataset['images'])))
             self.dataset['images'] = validImgs
 
         self.valid_ids = [img['id'] for img in self.dataset['images']]
@@ -1521,7 +1521,7 @@ class FlickrLogoBBoxSample(Dataset):
             fixedbbox = []
             imgSize = self.dataset['images'][i]['imgSize']
             maxSide = np.argmax(imgSize)
-            for j in xrange(len(self.dataset['images'][i]['bboxAnn'])):
+            for j in range(len(self.dataset['images'][i]['bboxAnn'])):
                 cbbox = self.dataset['images'][i]['bboxAnn'][j]
                 maxSideLen = int(float(self.out_img_size * imgSize[maxSide]) / (imgSize[1-maxSide]))
                 assert(maxSideLen >= self.out_img_size)
@@ -1559,7 +1559,7 @@ class FlickrLogoBBoxSample(Dataset):
             else:
                 self.attToImgId['bg'].add(i)
                 self.catsInImg[i] = ['bg']
-        self.attToImgId = {k:list(v) for k,v in self.attToImgId.iteritems()}
+        self.attToImgId = {k:list(v) for k,v in self.attToImgId.items()}
 
 
     def randomBBoxSample(self, index, max_area = -1):
@@ -1600,7 +1600,7 @@ class FlickrLogoBBoxSample(Dataset):
     def __getitem__(self, index):
         # In this situation ignore index and sample classes uniformly
         if self.balance_classes:
-            currCls = random.choice(self.attToImgId.keys())
+            currCls = random.choice(list(self.attToImgId.keys()))
             index = random.choice(self.attToImgId[currCls])
         else:
             currCls = random.choice(self.catsInImg[index])
@@ -1631,7 +1631,7 @@ class FlickrLogoBBoxSample(Dataset):
             # Sample random number of boxes between 1 and n_boxes
             c_nbox = np.random.randint(0,self.n_boxes)
             c_area = sampbbox[2]*sampbbox[3]
-            for i in xrange(c_nbox):
+            for i in range(c_nbox):
                 # Also stop at total area > 50%
                 if c_area < 0.7:
                     bsamp, _, _ = self.randomBBoxSample(index, 0.8-c_area) # Extra 10% to make the sampling easier
@@ -1704,7 +1704,7 @@ class FlickrLogoBBoxSample(Dataset):
     def getGTMaskInp(self, index, cls, hflip=False, mask_type=None):
         what_mask = self.use_gt_mask if mask_type is None else mask_type
         if what_mask==1:
-            print 'not supported'
+            print('not supported')
             assert(0)
         elif what_mask==2:
             # Use GT boxes as input
@@ -1798,7 +1798,7 @@ class Places2DatasetBBoxSample(Dataset):
             # Sample random number of boxes between 1 and n_boxes
             c_nbox = np.random.randint(0,self.n_boxes)
             c_area = sampbbox[2]*sampbbox[3]
-            for i in xrange(c_nbox):
+            for i in range(c_nbox):
                 # Also stop at total area > 50%
                 if c_area < 0.5:
                     bsamp, _, _ = self.randomBBoxSample(0.6-c_area) # Extra 10% to make the sampling easier
@@ -1895,7 +1895,7 @@ class PascalDatasetBBoxSample(Dataset):
                         self.attToImgId[att].add(i)
                 else:
                     self.attToImgId['bg'].add(i)
-            self.attToImgId = {k:list(v) for k,v in self.attToImgId.iteritems()}
+            self.attToImgId = {k:list(v) for k,v in self.attToImgId.items()}
 
     def randomBBoxSample(self, index):
         # With 50% chance sample from background or foreground
@@ -1933,7 +1933,7 @@ class PascalDatasetBBoxSample(Dataset):
     def __getitem__(self, index):
         # In this situation ignore index and sample classes uniformly
         if self.balance_classes:
-            currCls = random.choice(self.attToImgId.keys())
+            currCls = random.choice(list(self.attToImgId.keys()))
             index = random.choice(self.attToImgId[currCls])
             cid = [self.sattr_to_idx[currCls]] if currCls != 'bg' else [0]
         else:
@@ -1983,7 +1983,8 @@ class PascalDatasetBBoxSample(Dataset):
 
 class MNISTDatasetBBoxSample(Dataset):
     def __init__(self, transform, mode, select_attrs=[], out_img_size=64, bbox_out_size=32, randomrotate=0, scaleRange=[0.1, 0.9], squareAspectRatio=False, use_celeb=False):
-        self.image_path = os.path.join('data','mnist')
+        # self.image_path = os.path.join('data','mnist')
+        self.image_path = '/home/zhenyue-qin/Research/Project-Katyusha-Multi-Label-VAE/Katyusha-CVAE/data/'
         self.mode = mode
         self.iouThresh = 0.5
         self.maxDigits= 1
@@ -1994,7 +1995,8 @@ class MNISTDatasetBBoxSample(Dataset):
         self.nc = 1 if not self.use_celeb else 3
         transList = [transforms.RandomHorizontalFlip(), transforms.RandomRotation(randomrotate,resample=Image.BICUBIC)]#, transforms.ColorJitter(0.5,0.5,0.5,0.3)
         self.digitTransforms = transforms.Compose(transList)
-        self.dataset = MNIST(self.image_path,train=True, transform=self.digitTransforms) if not use_celeb else CelebDataset('./data/celebA/images', './data/celebA/list_attr_celeba.txt', self.digitTransforms, mode)
+        self.dataset = MNIST(self.image_path, train=True, transform=self.digitTransforms) if not use_celeb else \
+            CelebDataset('./data/celebA/images', './data/celebA/list_attr_celeba.txt', self.digitTransforms, mode)
         self.num_data = len(self.dataset)
         self.metadata = {'images':[]}
         self.catid2attr = {}
@@ -2007,7 +2009,7 @@ class MNISTDatasetBBoxSample(Dataset):
         print ('Finished preprocessing dataset..!')
 
     def preprocess(self):
-        for i in xrange(self.num_data):
+        for i in range(self.num_data):
             n_objects = np.random.randint(self.minDigits, self.maxDigits+1)
             c_digits = 0
             cbboxList = []
@@ -2103,7 +2105,7 @@ class CocoDataset(Dataset):
             fixedbbox = []
             imgSize = self.dataset['images'][i]['imgSize']
             maxSide = np.argmax(imgSize)
-            for j in xrange(len(self.dataset['images'][i]['bboxAnn'])):
+            for j in range(len(self.dataset['images'][i]['bboxAnn'])):
                 cbbox = self.dataset['images'][i]['bboxAnn'][j]
                 maxSideLen = int(float(self.out_img_size * imgSize[maxSide]) / (imgSize[1-maxSide]))
                 assert(maxSideLen >= self.out_img_size)
@@ -2134,14 +2136,14 @@ class CocoDataset(Dataset):
                         self.attToImgId[att].add(i)
                 else:
                     self.attToImgId['bg'].add(i)
-            self.attToImgId = {k:list(v) for k,v in self.attToImgId.iteritems()}
+            self.attToImgId = {k:list(v) for k,v in self.attToImgId.items()}
 
 
 
     def __getitem__(self, index):
         # In this situation ignore index and sample classes uniformly
         if self.balance_classes:
-            currCls = random.choice(self.attToImgId.keys())
+            currCls = random.choice(list(self.attToImgId.keys()))
             index = random.choice(self.attToImgId[currCls])
 
         image = Image.open(os.path.join(self.image_path,self.dataset['images'][index]['filepath'], self.dataset['images'][index]['filename']))
@@ -2213,11 +2215,11 @@ class CocoMaskDataset(Dataset):
                 else:
                     import ipdb; ipdb.set_trace()
 
-            self.attToImgId = {k:list(v) for k,v in self.attToImgId.iteritems()}
+            self.attToImgId = {k:list(v) for k,v in self.attToImgId.items()}
             for ann in self.attToImgId:
                     shuffle(self.attToImgId[ann])
             if self.n_masks_perclass >0:
-                self.attToImgId = {k:v[:self.n_masks_perclass] for k,v in self.attToImgId.iteritems()}
+                self.attToImgId = {k:v[:self.n_masks_perclass] for k,v in self.attToImgId.items()}
 
     def __getitem__(self, index):
         #image = Image.open(os.path.join(self.image_path,self.dataset['images'][index]['filepath'], self.dataset['images'][index]['filename']))
@@ -2534,11 +2536,11 @@ class MRCNN_MaskDataset(Dataset):
                 else:
                     import ipdb; ipdb.set_trace()
 
-            self.attToImgId = {k:list(v) for k,v in self.attToImgId.iteritems()}
+            self.attToImgId = {k:list(v) for k,v in self.attToImgId.items()}
             for ann in self.attToImgId:
                     shuffle(self.attToImgId[ann])
             if self.n_masks_perclass >0:
-                self.attToImgId = {k:v[:self.n_masks_perclass] for k,v in self.attToImgId.iteritems()}
+                self.attToImgId = {k:v[:self.n_masks_perclass] for k,v in self.attToImgId.items()}
 
     def __getitem__(self, index):
         #image = Image.open(os.path.join(self.image_path,self.dataset['images'][index]['filepath'], self.dataset['images'][index]['filename']))
@@ -2629,7 +2631,7 @@ class PascalMaskDataset(Dataset):
         self.mode = mode
         self.dataset = np.load(os.path.join(self.data_path, 'maskdata.npy')).item()
         self.selected_attrs = ['person', 'book', 'car', 'bird', 'chair'] if select_attrs== [] else select_attrs
-        self.valid_ids = self.dataset.keys()
+        self.valid_ids = list(self.dataset.keys())
         self.num_data = len(self.valid_ids)
         self.attr2idx = {}
         self.idx2attr = {}
@@ -2666,11 +2668,11 @@ class PascalMaskDataset(Dataset):
                     self.attToImgId[att].add(i)
             #else:
             #    import ipdb; ipdb.set_trace()
-        self.attToImgId = {k:list(v) for k,v in self.attToImgId.iteritems()}
+        self.attToImgId = {k:list(v) for k,v in self.attToImgId.items()}
         for ann in self.attToImgId:
                 shuffle(self.attToImgId[ann])
         if self.n_masks_perclass >0:
-            self.attToImgId = {k:v[:self.n_masks_perclass] for k,v in self.attToImgId.iteritems()}
+            self.attToImgId = {k:v[:self.n_masks_perclass] for k,v in self.attToImgId.items()}
 
 
     def __getitem__(self, index):
@@ -2687,7 +2689,7 @@ class PascalMaskDataset(Dataset):
             maskTotal = (self.dataset[self.valid_ids[index]]['mask'] == self.objectToMask[currObj]).astype(np.float)
             label[self.sattr_to_idx[currObj]] = 1.
         else:
-            print 'No obj in %s'%self.valid_ids[index]
+            print('No obj in %s'%self.valid_ids[index])
             maskTotal = np.zeros((128, 128))
 
         mask = torch.FloatTensor(np.asarray(self.transform(Image.fromarray(np.clip(maskTotal,0,1)))))[None,::]
@@ -2707,7 +2709,7 @@ class PascalMaskDataset(Dataset):
 
     def getbyIdAndclass(self, imgid, cls):
         if imgid not in self.valid_ids:
-            print 'Specified coco id not found'
+            print('Specified coco id not found')
             return
         index= self.valid_ids.index(imgid)
         maskTotal = (self.dataset[self.valid_ids[index]]['mask'] == self.objectToMask[cls]).astype(np.float)

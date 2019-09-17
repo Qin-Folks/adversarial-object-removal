@@ -28,7 +28,7 @@ class ParamObject(object):
 
         self.__dict__.update(adict)
 
-        for k, v in adict.items():
+        for k, v in list(adict.items()):
             if isinstance(v, dict):
                 self.__dict__[k] = ParamObject(v)
 
@@ -36,10 +36,10 @@ class ParamObject(object):
         return self.__dict__[key]
 
     def values(self):
-        return self.__dict__.values()
+        return list(self.__dict__.values())
 
     def itemsAsDict(self):
-        return dict(self.__dict__.items())
+        return dict(list(self.__dict__.items()))
 
 
 def make_image_with_text(img_size, text):
@@ -162,7 +162,7 @@ def saveIndividImages(image_list, mask_image_list, nameList,sample_dir, fp, cls)
         fname = join(fdir, nameList[i]+'.png')
         img = simple_make_image(img)
         cv2.imwrite(fname, img)
-        print 'Saving into file: ' + fname
+        print('Saving into file: ' + fname)
 
     if mask_image_list is not None:
         for i, img in enumerate(mask_image_list):
@@ -171,14 +171,14 @@ def saveIndividImages(image_list, mask_image_list, nameList,sample_dir, fp, cls)
                 fname = join(fdir, 'mask_'+nameList[i]+'.png')
                 img = simple_make_image(img)
                 cv2.imwrite(fname, img)
-                print 'Saving into file: ' + fname
+                print('Saving into file: ' + fname)
 
 def draw_arrows(img, pt1 , pt2):
     imgSz = img.shape[0]
     pt1 = ((pt1.data.cpu().numpy()+1.)/2.) * imgSz
     pt2 = ((pt2.data.cpu().numpy()[0,::]+1.)/2.) * imgSz
-    for i in xrange(0,pt1.shape[1],2):
-        for j in xrange(0,pt1.shape[2],2):
+    for i in range(0,pt1.shape[1],2):
+        for j in range(0,pt1.shape[2],2):
             if np.abs(pt1[0,i,j]-pt2[0,i,j]) > 2. or  np.abs(pt1[1,i,j]-pt2[1,i,j]) > 2. :
                 img = cv2.arrowedLine(img.astype(np.uint8), tuple(pt1[:,i,j]), tuple(pt2[:,i,j]), color=(0,0,255), line_type=cv2.LINE_AA, thickness=1, tipLength = 0.4)
     return img
@@ -264,7 +264,7 @@ def gen_samples(params):
     if len(params['dilateMask']):
         assert(len(params['model']) == len(params['dilateMask']))
         dilateWeightAll = []
-        for di in xrange(len(params['dilateMask'])):
+        for di in range(len(params['dilateMask'])):
             if params['dilateMask'][di] > 0:
                 dilateWeight = torch.ones((1,1,params['dilateMask'][di],params['dilateMask'][di]))
                 dilateWeight = Variable(dilateWeight,requires_grad=False).cuda()
@@ -272,7 +272,7 @@ def gen_samples(params):
                 dilateWeight = None
             dilateWeightAll.append(dilateWeight)
     else:
-        dilateWeightAll = [None for i in xrange(len(params['model']))]
+        dilateWeightAll = [None for i in range(len(params['model']))]
 
     dataset = get_dataset('', '', params['image_size'], params['image_size'], params['dataset'], params['split'],
                           select_attrs=configs[0]['selected_attrs'], datafile=params['datafile'], bboxLoader=1,
@@ -290,7 +290,7 @@ def gen_samples(params):
                 params['split'],select_attrs=configs[0]['selected_attrs'], bboxLoader=0, loadMasks = True)
     if len(params['sort_by']):
         resFiles = [json.load(open(fil,'r')) for fil in params['sort_by']]
-        for i in xrange(len(resFiles)):
+        for i in range(len(resFiles)):
             #if params['sort_score'] not in resFiles[i]['images'][resFiles[i]['images'].keys()[0]]['overall']:
             for k in resFiles[i]['images']:
                 img = resFiles[i]['images'][k]
@@ -300,7 +300,7 @@ def gen_samples(params):
                     resFiles[i]['images'][k]['overall'] = {}
                     resFiles[i]['images'][k]['overall'][params['sort_score']] = np.mean([img['perclass'][cls][params['sort_score']] for cls in img['perclass']])
         idToScore = {int(k):resFiles[0]['images'][k]['overall'][params['sort_score']] for k in resFiles[0]['images']}
-        idToScore = OrderedDict(reversed(sorted(idToScore.items(), key=lambda t: t[1])))
+        idToScore = OrderedDict(reversed(sorted(list(idToScore.items()), key=lambda t: t[1])))
         cocoIdToindex = {v:i for i,v in enumerate(dataset.valid_ids)}
         data_iter = [cocoIdToindex[k] for k in idToScore]
         dataIt2id = {cocoIdToindex[k]:str(k) for k in idToScore}
@@ -309,10 +309,10 @@ def gen_samples(params):
         cocoIdToindex = {v:i for i,v in enumerate(dataset.valid_ids)}
         data_iter = [cocoIdToindex[k] for k in params['show_ids']]
 
-    print len(data_iter)
+    print(len(data_iter))
 
     print('-----------------------------------------')
-    print('%s'%(' | '.join(targ_split.selected_attrs)))
+    print(('%s'%(' | '.join(targ_split.selected_attrs))))
     print('-----------------------------------------')
 
     flatten = lambda l: [item for sublist in l for item in sublist]
@@ -358,7 +358,7 @@ def gen_samples(params):
         if len(real_label[0,:].nonzero()):
             #rand_idx = random.choice(real_label[0,:].nonzero()).data[0]
             rand_idx = curCls[0]
-            print configs[0]['selected_attrs'][rand_idx]
+            print(configs[0]['selected_attrs'][rand_idx])
             if len(params['withExtMask']):
                 cocoid = targ_split.getcocoid(idx)
                 if params['extmask_type'] == 'mask':
@@ -372,7 +372,7 @@ def gen_samples(params):
             rand_idx = curCls[0]
         if params['showdiff']:
             diff_image_list = [x-x] if params['showmask'] else [x-x, x-x]
-        for i in xrange(len(params['model'])):
+        for i in range(len(params['model'])):
             if configs[i]['use_gtmask_inp']:
                 mask = solvers[0].to_var(targ_split.getGTMaskInp(idx, configs[0]['selected_attrs'][rand_idx], mask_type = configs[i]['use_gtmask_inp'])[None,::], volatile=True)
             if len(params['withExtMask']) or params['no_maskgen']:
@@ -446,23 +446,23 @@ def gen_samples(params):
             if len(params['sort_by']):
                 clsname = configs[0]['selected_attrs'][rand_idx]
                 cocoid = dataIt2id[data_iter[c_idx]]
-                curr_class_iou = [resFiles[i]['images'][cocoid]['real_scores'][rand_idx]] + [resFiles[i]['images'][cocoid]['perclass'][clsname][params['sort_score']] for i in xrange(len(params['model']))]
+                curr_class_iou = [resFiles[i]['images'][cocoid]['real_scores'][rand_idx]] + [resFiles[i]['images'][cocoid]['perclass'][clsname][params['sort_score']] for i in range(len(params['model']))]
                 if params['showperceptionloss']:
-                    textToPrint = ['P:%.2f, S:%.1f'%(vggLoss(fake_image_list[0], fake_image_list[i]).data[0],curr_class_iou[i]) for i in xrange(len(fake_image_list))]
+                    textToPrint = ['P:%.2f, S:%.1f'%(vggLoss(fake_image_list[0], fake_image_list[i]).data[0],curr_class_iou[i]) for i in range(len(fake_image_list))]
                 else:
-                    textToPrint = ['S:%.1f'%(curr_class_iou[i]) for i in xrange(len(fake_image_list))]
+                    textToPrint = ['S:%.1f'%(curr_class_iou[i]) for i in range(len(fake_image_list))]
                 if len(params['show_also']):
                     # Additional data to print
                     for val in params['show_also']:
-                        curval = [0.] + [resFiles[i]['images'][cocoid]['perclass'][clsname][val][rand_idx] for i in xrange(len(params['model']))]
+                        curval = [0.] + [resFiles[i]['images'][cocoid]['perclass'][clsname][val][rand_idx] for i in range(len(params['model']))]
                         textToPrint = [txt + ' %s:%.1f'%(val[0], curval[i]) for i,txt in enumerate(textToPrint)]
 
                 imgScore =  np.hstack(flatten([[make_image_with_text((32,x.size(3), 3),
                                       textToPrint[i]),
-                                      padimg[:32,:,:].astype(np.uint8)] for i in xrange(len(fake_image_list))]))
+                                      padimg[:32,:,:].astype(np.uint8)] for i in range(len(fake_image_list))]))
                 img = np.vstack([img, imgScore])
             elif params['showperceptionloss']:
-                imgScore = np.hstack(flatten([[make_image_with_text((32,x.size(3), 3), '%.2f'%vggLoss(fake_image_list[0],fake_image_list[i]).data[0]), padimg[:32,:,:].astype(np.uint8)] for i in xrange(len(fake_image_list))]))
+                imgScore = np.hstack(flatten([[make_image_with_text((32,x.size(3), 3), '%.2f'%vggLoss(fake_image_list[0],fake_image_list[i]).data[0]), padimg[:32,:,:].astype(np.uint8)] for i in range(len(fake_image_list))]))
                 img = np.vstack([img, imgScore])
 
 
@@ -494,13 +494,13 @@ def gen_samples(params):
                 if params['savesepimages']:
                     saveIndividImages(fake_image_list, mask_image_list, nameList, sample_dir, fp, configs[0]['selected_attrs'][rand_idx])
                 else:
-                    print 'Saving into file: ' + imgSaveName
+                    print('Saving into file: ' + imgSaveName)
                     cv2.imwrite(imgSaveName, img)
                 c_idx += 1
             else:
                 c_idx += 1
         else:
-            for di in xrange(len(deformList)):
+            for di in range(len(deformList)):
                 if len(deformList[di])>0 and len(deformList[di][0])>0:
                     for dLidx,d in enumerate(deformList[di]):
                         lengths, mean, maxl = compute_deform_statistics(d[1], d[0])
@@ -513,16 +513,16 @@ def gen_samples(params):
                             lengths_hist[dLidx] += lengthsH
 
         if params['compute_deform_stats'] and (cimg_cnt < params['compute_deform_stats']):
-            print np.mean(mean_hist[0])
-            print np.mean(mean_hist[1])
-            print np.mean(mean_hist[2])
-            print np.mean(max_hist[0])
-            print np.mean(max_hist[1])
-            print np.mean(max_hist[2])
+            print(np.mean(mean_hist[0]))
+            print(np.mean(mean_hist[1]))
+            print(np.mean(mean_hist[2]))
+            print(np.mean(max_hist[0]))
+            print(np.mean(max_hist[1]))
+            print(np.mean(max_hist[2]))
 
-            print lengths_hist[0]
-            print lengths_hist[1]
-            print lengths_hist[2]
+            print(lengths_hist[0])
+            print(lengths_hist[1])
+            print(lengths_hist[2])
             break
 
 if __name__ == "__main__":
@@ -577,5 +577,5 @@ if __name__ == "__main__":
   args = parser.parse_args()
   params = vars(args) # convert to ordinary dict
   params['cuda'] = not args.no_cuda
-  print json.dumps(params, indent = 2)
+  print(json.dumps(params, indent = 2))
   gen_samples(params)

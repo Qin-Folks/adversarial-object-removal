@@ -244,11 +244,11 @@ if __name__ == '__main__':
     parser.add_argument('--sample_step', type=int, default=500)
     parser.add_argument('--model_save_step', type=int, default=2)
 
-
     config = parser.parse_args()
-    config.sample_path = os.path.join(config.sample_path,config.fappend)
-    config.result_path = os.path.join(config.result_path,config.fappend)
-    config.model_save_path = os.path.join(config.model_save_path,config.fappend)
+    config.dataset = 'mnist'
+    config.sample_path = os.path.join(config.sample_path, config.fappend)
+    config.result_path = os.path.join(config.result_path, config.fappend)
+    config.model_save_path = os.path.join(config.model_save_path, config.fappend)
 
     print(config)
 

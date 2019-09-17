@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import torch
-from dataset import Dataset
+from .dataset import Dataset
 from PIL import Image
 from os.path import join
 from torchvision.transforms import Compose, CenterCrop, ToTensor, Resize, Lambda

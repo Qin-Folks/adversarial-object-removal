@@ -30,7 +30,7 @@ class ParamObject(object):
 
         self.__dict__.update(adict)
 
-        for k, v in adict.items():
+        for k, v in list(adict.items()):
             if isinstance(v, dict):
                 self.__dict__[k] = ParamObject(v)
 
@@ -38,10 +38,10 @@ class ParamObject(object):
         return self.__dict__[key]
 
     def values(self):
-        return self.__dict__.values()
+        return list(self.__dict__.values())
 
     def itemsAsDict(self):
-        return dict(self.__dict__.items())
+        return dict(list(self.__dict__.items()))
 
 def get_sk_image(img):
     img = img[:,[0,0,0], ::] if img.shape[1] == 1 else img
@@ -65,7 +65,7 @@ def VOCap(rec,prec):
     # Here we use boolean indexing of numpy instead of find
     steps = (mrec[1:,:] != mrec[:-1,:])
     ap = np.zeros(nc)
-    for i in xrange(nc):
+    for i in range(nc):
         ap[i]=sum((mrec[1:,:][steps[:,i], i] - mrec[:-1,:][steps[:,i], i])*mprec[1:,][steps[:,i],i])
     return ap
 
@@ -120,7 +120,7 @@ def gen_samples(params):
         if params['use_same_g']:
             solvers[-1].no_inpainter = 0
             solvers[-1].load_pretrained_generator(gCV)
-            print 'loaded generator again'
+            print('loaded generator again')
 
     solvers[0].D.eval()
     solvers[0].D_cls.eval()
@@ -144,7 +144,7 @@ def gen_samples(params):
                                    params['dataset'],
                                    params['split'], select_attrs=configs[0]['selected_attrs'], bboxLoader=0, loadMasks = True)
         commonIds = set(gt_mask_data.valid_ids).intersection(set(dataset.valid_ids))
-        commonIndexes = [i for i in xrange(len(dataset.valid_ids)) if dataset.valid_ids[i] in commonIds]
+        commonIndexes = [i for i in range(len(dataset.valid_ids)) if dataset.valid_ids[i] in commonIds]
         data_iter = commonIndexes
 
     if params['withExtMask'] and (params['extmask_type'] == 'mask'):
@@ -153,7 +153,7 @@ def gen_samples(params):
                                    params['split'], select_attrs=configs[0]['selected_attrs'], bboxLoader=0, loadMasks = True)
         curr_valid_ids = [dataset.valid_ids[i] for i in data_iter]
         commonIds = set(ext_mask_data.valid_ids).intersection(set(curr_valid_ids))
-        commonIndexes = [i for i in xrange(len(dataset.valid_ids)) if dataset.valid_ids[i] in commonIds]
+        commonIndexes = [i for i in range(len(dataset.valid_ids)) if dataset.valid_ids[i] in commonIds]
         data_iter = commonIndexes
 
     if params['nImages'] > -1:
@@ -161,7 +161,7 @@ def gen_samples(params):
 
 
     print('-----------------------------------------')
-    print('%s'%(' | '.join(targ_split.selected_attrs)))
+    print(('%s'%(' | '.join(targ_split.selected_attrs))))
     print('-----------------------------------------')
 
     flatten = lambda l: [item for sublist in l for item in sublist]
@@ -215,7 +215,7 @@ def gen_samples(params):
     all_masks = []
     all_imgidAndCls = []
 
-    for i in tqdm(xrange(len(data_iter))):
+    for i in tqdm(range(len(data_iter))):
     #for i in tqdm(xrange(2)):
         idx = data_iter[i]
         x, real_label, boxImg, boxlabel, mask, bbox, curCls  = targ_split[idx]
@@ -382,34 +382,34 @@ def gen_samples(params):
     rec_overall = perclass_tp.sum()/ (perclass_tp.sum() + perclass_fn.sum() + 1e-6)
     prec_overall = perclass_tp.sum()/ (perclass_tp.sum() + perclass_fp.sum() + 1e-6)
     f1_score_overall = 2.0* (rec_overall*prec_overall)/(rec_overall+prec_overall+1e-6)
-    print '------------------------------------------------------------'
-    print '                Metrics have been computed                  '
-    print '------------------------------------------------------------'
-    print('Score: || %s |'%(' | '.join(['%6s'%att[:6] for att in ['Overall', 'OverCls']+present_attrs])))
-    print('Acc  : || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_acc/total_count).mean()]+[(perclass_acc/total_count).mean()]+list(perclass_acc/total_count)])))
-    print('F1-sc: || %s |'%(' | '.join(['  %.2f' % sc for sc in [f1_score_overall]+[f1_score.mean()]+list(f1_score)])))
-    print('recal: || %s |'%(' | '.join(['  %.2f' % sc for sc in [rec_overall]+[recall.mean()]+list(recall)])))
-    print('prec : || %s |'%(' | '.join(['  %.2f' % sc for sc in [prec_overall]+[precision.mean()]+list(precision)])))
+    print('------------------------------------------------------------')
+    print('                Metrics have been computed                  ')
+    print('------------------------------------------------------------')
+    print(('Score: || %s |'%(' | '.join(['%6s'%att[:6] for att in ['Overall', 'OverCls']+present_attrs]))))
+    print(('Acc  : || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_acc/total_count).mean()]+[(perclass_acc/total_count).mean()]+list(perclass_acc/total_count)]))))
+    print(('F1-sc: || %s |'%(' | '.join(['  %.2f' % sc for sc in [f1_score_overall]+[f1_score.mean()]+list(f1_score)]))))
+    print(('recal: || %s |'%(' | '.join(['  %.2f' % sc for sc in [rec_overall]+[recall.mean()]+list(recall)]))))
+    print(('prec : || %s |'%(' | '.join(['  %.2f' % sc for sc in [prec_overall]+[precision.mean()]+list(precision)]))))
     if params['computeAP']:
-        print('AP   : || %s |'%(' | '.join(['  %.2f' % sc for sc in [apROverall]+[apR.mean()]+list(apR)])))
-    print('Count: || %s |'%(' | '.join(['  %4.0f' % sc for sc in [perclass_gt_counts.mean()]+[perclass_gt_counts.mean()]+list(perclass_gt_counts[present_classes])])))
+        print(('AP   : || %s |'%(' | '.join(['  %.2f' % sc for sc in [apROverall]+[apR.mean()]+list(apR)]))))
+    print(('Count: || %s |'%(' | '.join(['  %4.0f' % sc for sc in [perclass_gt_counts.mean()]+[perclass_gt_counts.mean()]+list(perclass_gt_counts[present_classes])]))))
     if not params['eval_only_discr']:
-        print('R-suc: || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_removeSucc.sum()/perclass_cooccurence.diagonal().sum())]+[(perclass_removeSucc/perclass_cooccurence.diagonal()).mean()]+list(perclass_removeSucc/perclass_cooccurence.diagonal())])))
-        print('R-fal: || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_confusion.sum()/(perclass_cooccurence.sum() - perclass_cooccurence.diagonal().sum()))]+[(perclass_confusion.sum(axis=1)/(perclass_cooccurence.sum(axis=1) - perclass_cooccurence.diagonal())).mean()]+list((perclass_confusion/perclass_cooccurence).sum(axis=1)/(perclass_cooccurence.shape[0]-1))])))
-        print('Percp: || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_vgg.sum()/perclass_cooccurence.diagonal().sum())]+[(perclass_vgg/perclass_cooccurence.diagonal()).mean()]+list(perclass_vgg/perclass_cooccurence.diagonal())])))
-        print('pSNR : || %s |'%(' | '.join([' %.2f' % sc for sc in [(perclass_psnr.sum()/perclass_cooccurence.diagonal().sum())]+[(perclass_psnr/perclass_cooccurence.diagonal()).mean()]+list(perclass_psnr/perclass_cooccurence.diagonal())])))
-        print('ssim : || %s |'%(' | '.join([' %.3f' % sc for sc in [(perclass_ssim.sum()/perclass_cooccurence.diagonal().sum())]+[(perclass_ssim/perclass_cooccurence.diagonal()).mean()]+list(perclass_ssim/perclass_cooccurence.diagonal())])))
+        print(('R-suc: || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_removeSucc.sum()/perclass_cooccurence.diagonal().sum())]+[(perclass_removeSucc/perclass_cooccurence.diagonal()).mean()]+list(perclass_removeSucc/perclass_cooccurence.diagonal())]))))
+        print(('R-fal: || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_confusion.sum()/(perclass_cooccurence.sum() - perclass_cooccurence.diagonal().sum()))]+[(perclass_confusion.sum(axis=1)/(perclass_cooccurence.sum(axis=1) - perclass_cooccurence.diagonal())).mean()]+list((perclass_confusion/perclass_cooccurence).sum(axis=1)/(perclass_cooccurence.shape[0]-1))]))))
+        print(('Percp: || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_vgg.sum()/perclass_cooccurence.diagonal().sum())]+[(perclass_vgg/perclass_cooccurence.diagonal()).mean()]+list(perclass_vgg/perclass_cooccurence.diagonal())]))))
+        print(('pSNR : || %s |'%(' | '.join([' %.2f' % sc for sc in [(perclass_psnr.sum()/perclass_cooccurence.diagonal().sum())]+[(perclass_psnr/perclass_cooccurence.diagonal()).mean()]+list(perclass_psnr/perclass_cooccurence.diagonal())]))))
+        print(('ssim : || %s |'%(' | '.join([' %.3f' % sc for sc in [(perclass_ssim.sum()/perclass_cooccurence.diagonal().sum())]+[(perclass_ssim/perclass_cooccurence.diagonal()).mean()]+list(perclass_ssim/perclass_cooccurence.diagonal())]))))
         if params['computeAP']:
-            print('R-AP : || %s |'%(' | '.join(['  %.2f' % sc for sc in [apEdited.mean()]+[apEdited.mean()]+list(apEdited)])))
+            print(('R-AP : || %s |'%(' | '.join(['  %.2f' % sc for sc in [apEdited.mean()]+[apEdited.mean()]+list(apEdited)]))))
 
 
         if params['computeSegAccuracy']:
-            print('mIou : || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_int.sum()/(perclass_union+1e-6).sum())]+[(perclass_int/(perclass_union+1e-6)).mean()]+list(perclass_int/(perclass_union+1e-6))])))
-            print('mRec : || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_int.sum()/(perclass_gtsize+1e-6).sum())]+[(perclass_int/(perclass_gtsize+1e-6)).mean()]+list(perclass_int/(perclass_gtsize+1e-6))])))
-            print('mPrc : || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_int.sum()/(perclass_predsize.sum()))]+[(perclass_int/(perclass_predsize+1e-6)).mean()]+list(perclass_int/(perclass_predsize+1e-6))])))
-            print('mSzR : || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_predsize.sum()/(perclass_gtsize.sum()))]+[(perclass_predsize/(perclass_gtsize+1e-6)).mean()]+list(perclass_predsize/(perclass_gtsize+1e-6))])))
-            print('Acc  : || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_segacc.sum()/(perclass_counts.sum()))]+[(perclass_segacc/(perclass_counts+1e-6)).mean()]+list(perclass_segacc/(perclass_counts+1e-6))])))
-            print('mSz  : || %s |'%(' | '.join(['  %.1f' % sc for sc in [(100.*(perclass_predsize.sum()/(params['mask_size']*params['mask_size']*perclass_counts).sum()))]+[(100.*(perclass_predsize/(params['mask_size']*params['mask_size']*perclass_counts+1e-6))).mean()]+list((100.*perclass_predsize)/(params['mask_size']*params['mask_size']*perclass_counts+1e-6))])))
+            print(('mIou : || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_int.sum()/(perclass_union+1e-6).sum())]+[(perclass_int/(perclass_union+1e-6)).mean()]+list(perclass_int/(perclass_union+1e-6))]))))
+            print(('mRec : || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_int.sum()/(perclass_gtsize+1e-6).sum())]+[(perclass_int/(perclass_gtsize+1e-6)).mean()]+list(perclass_int/(perclass_gtsize+1e-6))]))))
+            print(('mPrc : || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_int.sum()/(perclass_predsize.sum()))]+[(perclass_int/(perclass_predsize+1e-6)).mean()]+list(perclass_int/(perclass_predsize+1e-6))]))))
+            print(('mSzR : || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_predsize.sum()/(perclass_gtsize.sum()))]+[(perclass_predsize/(perclass_gtsize+1e-6)).mean()]+list(perclass_predsize/(perclass_gtsize+1e-6))]))))
+            print(('Acc  : || %s |'%(' | '.join(['  %.2f' % sc for sc in [(perclass_segacc.sum()/(perclass_counts.sum()))]+[(perclass_segacc/(perclass_counts+1e-6)).mean()]+list(perclass_segacc/(perclass_counts+1e-6))]))))
+            print(('mSz  : || %s |'%(' | '.join(['  %.1f' % sc for sc in [(100.*(perclass_predsize.sum()/(params['mask_size']*params['mask_size']*perclass_counts).sum()))]+[(100.*(perclass_predsize/(params['mask_size']*params['mask_size']*perclass_counts+1e-6))).mean()]+list((100.*perclass_predsize)/(params['mask_size']*params['mask_size']*perclass_counts+1e-6))]))))
 
         perImageRes['overall'] = {'iou': 0., 'rec': 0., 'prec':0., 'acc':0.}
         perImageRes['overall']['remove_succ'] =(perclass_removeSucc/perclass_cooccurence.diagonal()).mean()
@@ -481,5 +481,5 @@ if __name__ == "__main__":
   args = parser.parse_args()
   params = vars(args) # convert to ordinary dict
   params['cuda'] = not args.no_cuda
-  print json.dumps(params, indent = 2)
+  print(json.dumps(params, indent = 2))
   gen_samples(params)

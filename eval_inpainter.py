@@ -30,7 +30,7 @@ class ParamObject(object):
 
         self.__dict__.update(adict)
 
-        for k, v in adict.items():
+        for k, v in list(adict.items()):
             if isinstance(v, dict):
                 self.__dict__[k] = ParamObject(v)
 
@@ -38,10 +38,10 @@ class ParamObject(object):
         return self.__dict__[key]
 
     def values(self):
-        return self.__dict__.values()
+        return list(self.__dict__.values())
 
     def itemsAsDict(self):
-        return dict(self.__dict__.items())
+        return dict(list(self.__dict__.items()))
 
 def VOCap(rec,prec):
 
@@ -60,7 +60,7 @@ def VOCap(rec,prec):
     # Here we use boolean indexing of numpy instead of find
     steps = (mrec[1:,:] != mrec[:-1,:])
     ap = np.zeros(nc)
-    for i in xrange(nc):
+    for i in range(nc):
         ap[i]=sum((mrec[1:,:][steps[:,i], i] - mrec[:-1,:][steps[:,i], i])*mprec[1:,][steps[:,i],i])
     return ap
 
@@ -135,11 +135,11 @@ def gen_samples(params):
                                    params['dataset'] if params['extMask_source']=='gt' else params['extMask_source'],
                                    params['split'], select_attrs=configs[0]['selected_attrs'], bboxLoader=0, loadMasks = True)
         commonIds = set(gt_mask_data.valid_ids).intersection(set(dataset.valid_ids))
-        commonIndexes = [i for i in xrange(len(dataset.valid_ids)) if dataset.valid_ids[i] in commonIds]
+        commonIndexes = [i for i in range(len(dataset.valid_ids)) if dataset.valid_ids[i] in commonIds]
         data_iter = commonIndexes if params['nImages'] == -1 else commonIndexes[:params['nImages']]
 
     print('-----------------------------------------')
-    print('%s'%(' | '.join(targ_split.selected_attrs)))
+    print(('%s'%(' | '.join(targ_split.selected_attrs))))
     print('-----------------------------------------')
 
     flatten = lambda l: [item for sublist in l for item in sublist]
@@ -171,7 +171,7 @@ def gen_samples(params):
         dilateWeight = None
 
 
-    for i in tqdm(xrange(len(data_iter))):
+    for i in tqdm(range(len(data_iter))):
     #for i in tqdm(xrange(2)):
         idx = data_iter[i]
         x, real_label, boxImg, boxlabel, mask, bbox, curCls  = targ_split[idx]
@@ -204,12 +204,12 @@ def gen_samples(params):
             ssimTotal[msz_bin] += ssim
             total_count[msz_bin] += 1
 
-    print '------------------------------------------------------------'
-    print '                Metrics have been computed                  '
-    print '------------------------------------------------------------'
-    print('Percp: || %s |'%(' | '.join(['  %.3f' % sc for sc in [vLTotal.sum()/total_count.sum()] + list(vLTotal/total_count)])))
-    print('pSNR : || %s |'%(' | '.join(['  %.3f' % sc for sc in [pSNRTotal.sum()/total_count.sum()] + list(pSNRTotal/total_count)])))
-    print('ssim : || %s |'%(' | '.join(['  %.3f' % sc for sc in [ssimTotal.sum()/total_count.sum()] + list(ssimTotal/total_count)])))
+    print('------------------------------------------------------------')
+    print('                Metrics have been computed                  ')
+    print('------------------------------------------------------------')
+    print(('Percp: || %s |'%(' | '.join(['  %.3f' % sc for sc in [vLTotal.sum()/total_count.sum()] + list(vLTotal/total_count)]))))
+    print(('pSNR : || %s |'%(' | '.join(['  %.3f' % sc for sc in [pSNRTotal.sum()/total_count.sum()] + list(pSNRTotal/total_count)]))))
+    print(('ssim : || %s |'%(' | '.join(['  %.3f' % sc for sc in [ssimTotal.sum()/total_count.sum()] + list(ssimTotal/total_count)]))))
     if params['dump_perimage_res']:
         json.dump(perImageRes, open(join(params['dump_perimage_res'], params['split']+'_'+ basename(params['model'][0]).split('.')[0]),'w'))
 
@@ -260,6 +260,6 @@ if __name__ == "__main__":
   args = parser.parse_args()
   params = vars(args) # convert to ordinary dict
   params['cuda'] = not args.no_cuda
-  print json.dumps(params, indent = 2)
+  print(json.dumps(params, indent = 2))
   gen_samples(params)
 

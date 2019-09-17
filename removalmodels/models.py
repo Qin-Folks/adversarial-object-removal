@@ -59,7 +59,7 @@ class AdaptiveScaleTconv(nn.Module):
             self.upsampLayer = nn.Upsample(scale_factor=scale, mode='bilinear', align_corners=False)
 
         if n_filters > 1:
-            self.convFilter = nn.Sequential(*[nn.Conv2d(dim_in if i==0 else dim_out, dim_out, kernel_size=3, stride=1, padding=1, bias=False) for i in xrange(n_filters)])
+            self.convFilter = nn.Sequential(*[nn.Conv2d(dim_in if i==0 else dim_out, dim_out, kernel_size=3, stride=1, padding=1, bias=False) for i in range(n_filters)])
         else:
             self.convFilter = nn.Conv2d(dim_in, dim_out, kernel_size=3, stride=1, padding=1, bias=False)
         self.use_deform = use_deform
@@ -648,7 +648,7 @@ class GeneratorMaskAndFeat(nn.Module):
             # After featGen layers spatial dim is 1 x 1
             # Feat dim is 512
             #-------------------------------------------
-            for i in xrange(3):
+            for i in range(3):
                 featGenLayers.extend(get_conv_inorm_relu_block(curr_dim, curr_dim, 3, 1, 1, padtype='zero'))
                 featGenLayers.append(nn.MaxPool2d(2) if i<2 else nn.MaxPool2d(4))
 
@@ -1082,7 +1082,7 @@ class GeneratorBoxReconst(nn.Module):
         #print(xI.device, [p.device for p in self.parameters()][0])
         if self.gen_full_image:
             dowOut = [xI]
-            for i in xrange(self.g_downsamp_layers+1):
+            for i in range(self.g_downsamp_layers+1):
                 dowOut.append(self.downsample[3*i+2](self.downsample[3*i+1](self.downsample[3*i](dowOut[-1]))))
             downsamp_out = dowOut[-1]
         else:
@@ -1733,7 +1733,7 @@ class VGGLoss(nn.Module):
                 loss = loss + self.lin6.model(diffs[6]).mean()
             if self.use_style_loss:
                 style_loss = 0.
-                for kk in xrange(3, len(x_vgg)):
+                for kk in range(3, len(x_vgg)):
                     style_loss += self.criterion(self.gram(x_vgg[kk]), self.gram(y_vgg[kk]))
                 loss += self.use_style_loss * style_loss
         else:

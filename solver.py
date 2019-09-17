@@ -318,13 +318,13 @@ class Solver(object):
 
 
             self.g_optimizer = torch.optim.Adam(g_params, self.g_lr, [self.beta1, self.beta2])#, amsgrad=True)
-            self.d_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.D.parameters()), self.d_lr, [self.beta1, self.beta2])#, amsgrad=True)
+            self.d_optimizer = torch.optim.Adam([p for p in self.D.parameters() if p.requires_grad], self.d_lr, [self.beta1, self.beta2])#, amsgrad=True)
             if (self.D_cls is not None) and self.use_seperate_classifier:
-                self.dcls_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.D_cls.parameters()), self.d_lr, [self.beta1, self.beta2], weight_decay=0.01)#, amsgrad=True)
+                self.dcls_optimizer = torch.optim.Adam([p for p in self.D_cls.parameters() if p.requires_grad], self.d_lr, [self.beta1, self.beta2], weight_decay=0.01)#, amsgrad=True)
             if self.E is not None:
-                self.e_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.E.parameters()), self.e_lr, [self.beta1, self.beta2])#, amsgrad=True)
+                self.e_optimizer = torch.optim.Adam([p for p in self.E.parameters() if p.requires_grad], self.e_lr, [self.beta1, self.beta2])#, amsgrad=True)
             if self.use_maskprior_gan:
-                self.mask_d_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.mask_D.parameters()), self.d_lr, [self.beta1, self.beta2])#, amsgrad=True)
+                self.mask_d_optimizer = torch.optim.Adam([p for p in self.mask_D.parameters() if p.requires_grad], self.d_lr, [self.beta1, self.beta2])#, amsgrad=True)
 
             # Print networks
             self.print_network(self.G, 'G')
@@ -357,7 +357,7 @@ class Solver(object):
 
         if torch.cuda.is_available():
             if torch.cuda.device_count() > 1:
-                print 'Using multiple GPUs'
+                print('Using multiple GPUs')
                 self.G = nn.DataParallel(self.G)
                 #self.vggLoss = nn.DataParallel(self.vggLoss)
             self.G.cuda()
@@ -382,7 +382,7 @@ class Solver(object):
                 num_params += p.numel()
         print(name)
         print(model)
-        print("The number of parameters: {}".format(num_params))
+        print(("The number of parameters: {}".format(num_params)))
 
     def load_pretrained_model(self, cv=None):
         if cv is None:
@@ -390,28 +390,28 @@ class Solver(object):
         if 'generator_state_dict' in cv and self.load_generator:
             self.load_pretrained_generator(cv)
         else:
-            print 'Generator not found'
+            print('Generator not found')
         if (self.mode == 'train' or self.mode=='eval') and self.load_discriminator: #and not self.d_use_spectralnorm:
             if 'discriminator_state_dict' in cv:
                 self.D.load_state_dict(cv['discriminator_state_dict'])
             else:
-                print 'Discriminator not found'
+                print('Discriminator not found')
         if (self.E is not None) and self.load_encoder:
             if 'encoder_state_dict' in cv:
                 self.E.load_state_dict(cv['encoder_state_dict'])
             else:
-                print 'Encoder not found'
+                print('Encoder not found')
         if self.use_maskprior_gan and (self.mode == 'train'):
             if 'mask_discriminator_state_dict' in cv:
                 self.mask_D.load_state_dict(cv['mask_discriminator_state_dict'])
             else:
-                print 'Mask discriminator not found'
+                print('Mask discriminator not found')
         if (self.D_cls is not None) and self.use_seperate_classifier and self.load_discriminator:
             if 'discriminator_cls_state_dict' in cv:
                 self.D_cls.load_state_dict(cv['discriminator_cls_state_dict'])
             else:
-                print 'Object classifier not found'
-        print('loaded trained models (step: {})..!'.format(self.pretrained_model))
+                print('Object classifier not found')
+        print(('loaded trained models (step: {})..!'.format(self.pretrained_model)))
 
     def load_pretrained_encoder(self, fname):
         cv = torch.load(fname)
@@ -420,7 +420,7 @@ class Solver(object):
 
     def load_pretrained_generator(self, cv):
         new_state_dict = OrderedDict()
-        for k, v in cv['generator_state_dict'].items():
+        for k, v in list(cv['generator_state_dict'].items()):
             # remove `module.`
             name = k[7:] if k.startswith('module.') else k
             new_state_dict[name] = v
@@ -436,7 +436,7 @@ class Solver(object):
             self.D_cls.load_state_dict(cv['discriminator_cls_state_dict'])
         if self.use_maskprior_gan and 'mask_discriminator_state_dict' in cv and (self.mode == 'train'):
             self.mask_D.load_state_dict(cv['mask_discriminator_state_dict'])
-        print('loaded pre-trained discr (step: {})..!'.format(fname))
+        print(('loaded pre-trained discr (step: {})..!'.format(fname)))
 
     def build_tensorboard(self):
         from logger import Logger
@@ -959,12 +959,12 @@ class Solver(object):
                     log = "Elapsed [{}], Epoch [{}/{}], Iter [{}/{}]".format(
                         elapsed, e+1, self.num_epochs, i+1, iters_per_epoch)
 
-                    for tag, value in loss.items():
+                    for tag, value in list(loss.items()):
                         log += ", {}: {:.2f}".format(tag, value)
                     print(log)
 
                     if self.use_tensorboard:
-                        for tag, value in loss.items():
+                        for tag, value in list(loss.items()):
                             self.logger.scalar_summary(tag, value, e * iters_per_epoch + i + 1)
 
                 # Translate fixed images for debugging
@@ -975,7 +975,7 @@ class Solver(object):
                     fake_images = torch.cat(fake_image_list, dim=3)
                     save_image(self.denorm(fake_images.data),
                         os.path.join(self.sample_path, '{}_{}_fake.png'.format(e+1, i+1)),nrow=1, padding=0)
-                    print('Translated images and saved into {}..!'.format(self.sample_path))
+                    print(('Translated images and saved into {}..!'.format(self.sample_path)))
 
                 # Save model checkpoints
                 if (i+1) % self.model_save_step == 0:
@@ -1008,7 +1008,7 @@ class Solver(object):
                 d_lr = max(1e-5, d_lr)
                 e_lr = max(1e-5, e_lr)
                 self.update_lr(g_lr, d_lr, e_lr)
-                print ('Decay learning rate to g_lr: {}, d_lr: {}.'.format(g_lr, d_lr))
+                print(('Decay learning rate to g_lr: {}, d_lr: {}.'.format(g_lr, d_lr)))
 
     def forward_fulleditor(self, x, label, get_feat=False, binary_mask=None, onlyMasks=False, mask_threshold=0.3,
                            gtMask=None, withGTMask=False, dilate=None, getAllMasks=False, n_iter = 0):
@@ -1058,7 +1058,7 @@ class Solver(object):
                 fakeImg = genImg*maskUpsamp+ xM
 
             if n_iter > 0:
-                for i in xrange(n_iter):
+                for i in range(n_iter):
                     xInp =torch.cat([fakeImg,maskUpsamp],dim=1)
                     genImg = self.G(xInp, boxFeat)
                     fakeImg = genImg*maskUpsamp+ xM
@@ -1651,12 +1651,12 @@ class Solver(object):
                     log = "| T={} | E={}/{} | I={}/{}| - ".format(
                         elapsed, e+1, self.num_epochs, i+1, iters_per_epoch)
 
-                    for tag, value in loss.items():
+                    for tag, value in list(loss.items()):
                         log += "|{}: {:.2f} ".format(tag, value)
                     print(log)
 
                     if self.use_tensorboard:
-                        for tag, value in loss.items():
+                        for tag, value in list(loss.items()):
                             self.logger.scalar_summary(tag, value, e * iters_per_epoch + i + 1)
                 #if i > 200:
                 #    break
@@ -1664,11 +1664,11 @@ class Solver(object):
             if (e+1) % print_iter == 0:
                 if 'r_acc' in accLog:
                     log = ['Real--']+["{}: {:.2f}".format(self.selected_attrs[cati],acc) for cati,acc in enumerate(accLog['r_acc'])]
-                    print(' '.join(log))
+                    print((' '.join(log)))
                 if 'f_acc' in accLog:
                     log = ['Fake--']
                     log.extend(["{}: {:.2f}".format(self.selected_attrs[cati],acc) for cati,acc in enumerate(accLog['f_acc'])])
-                    print(' '.join(log))
+                    print((' '.join(log)))
 
             # Translate fixed images for debugging
             if ((e+1) % self.sample_step == 0) and (not self.train_only_d):
@@ -1680,7 +1680,7 @@ class Solver(object):
                 fake_images = torch.cat(fake_image_list, dim=3)
                 save_image(self.denorm(fake_images.data),
                     os.path.join(self.sample_path, '{}_{}_fake.png'.format(e+1, i+1)),nrow=1, padding=0)
-                print('Translated images and saved into {} !'.format(self.sample_path))
+                print(('Translated images and saved into {} !'.format(self.sample_path)))
 
                 del fake_x, mask, fake_images, fake_image_list
 
@@ -1723,7 +1723,7 @@ class Solver(object):
                 d_lr = max(1e-5, d_lr)
                 e_lr = max(1e-5, e_lr)
                 self.update_lr(g_lr, d_lr, e_lr)
-                print ('Decay learning rate to g_lr: {}, d_lr: {}.'.format(g_lr, d_lr))
+                print(('Decay learning rate to g_lr: {}, d_lr: {}.'.format(g_lr, d_lr)))
 
 
     def forward_boxreconst(self, x, box, mask, boxlabel=None, bbox=None, get_feat=False, no_enc = False):
@@ -1754,7 +1754,7 @@ class Solver(object):
             bsz = x.size(0)
             imsz = x.size()[1:]
             fakeImg = xM
-            for i in xrange(bsz):
+            for i in range(bsz):
                 #r_genImg = [F.adaptive_avg_pool2d(genImg[i,:,:,:], (bbox[i,3],bbox[i,2])) for i in xrange(bsz)]
                 fakeImg[i,:,bbox[i,1]:bbox[i,1]+bbox[i,3], bbox[i,0]:bbox[i,0]+bbox[i,2]] =  F.adaptive_avg_pool2d(genImg[i:i+1,:,:,:], (bbox[i,3],bbox[i,2]))
                 #xM.masked_scatter(mask[i,::].byte().expand(*imsz), r_genImg[i])
@@ -1770,7 +1770,7 @@ class Solver(object):
         bsz = img.size(0)
         size = self.box_size
         if boxestoInc is None:
-            randomBoxes = [(random.randint(0,imsz-size), random.randint(0,imsz-size)) for i in xrange(bsz)]
+            randomBoxes = [(random.randint(0,imsz-size), random.randint(0,imsz-size)) for i in range(bsz)]
         else:
             # sample the new box such that the center of the target box is within it
             #randomBoxes = [(random.randint(min(max(boxestoInc[i,1]+boxestoInc[i,3]//2-(3*size//4), 0), imsz-size), min(max(boxestoInc[i,1]+boxestoInc[i,3]//2-(size//4),0), imsz-size)),
@@ -1778,7 +1778,7 @@ class Solver(object):
             randomBoxes = [(random.randint(min(max(min(boxestoInc[i,1]+boxestoInc[i,3]-size, boxestoInc[i,1]), 0), imsz-size),
                                            min(max(max(boxestoInc[i,1]+boxestoInc[i,3]-size, boxestoInc[i,1]),0), imsz-size)),
                             random.randint(min(max(min(boxestoInc[i,0]+boxestoInc[i,2]-size, boxestoInc[i,0]), 0), imsz-size),
-                                           min(max(max(boxestoInc[i,0]+boxestoInc[i,2]-size, boxestoInc[i,0]),0), imsz-size))) for i in xrange(bsz)]
+                                           min(max(max(boxestoInc[i,0]+boxestoInc[i,2]-size, boxestoInc[i,0]),0), imsz-size))) for i in range(bsz)]
 
         croppedImg = torch.cat([img[i:i+1, :, rb[0]:rb[0]+size, rb[1]:rb[1]+size] for i,rb in enumerate(randomBoxes)],dim=0)
 
@@ -2061,12 +2061,12 @@ class Solver(object):
                     log = "Elapsed [{}], Epoch [{}/{}], Iter [{}/{}]".format(
                         elapsed, e+1, self.num_epochs, i+1, iters_per_epoch)
 
-                    for tag, value in loss.items():
+                    for tag, value in list(loss.items()):
                         log += ", {}: {:.3f}".format(tag, value)
                     print(log)
 
                     if self.use_tensorboard:
-                        for tag, value in loss.items():
+                        for tag, value in list(loss.items()):
                             self.logger.scalar_summary(tag, value, e * iters_per_epoch + i + 1)
 
             # Translate fixed images for debugging
@@ -2076,7 +2076,7 @@ class Solver(object):
                 fake_images = torch.cat(fake_image_list, dim=3)
                 save_image(self.denorm(fake_images.data),
                     os.path.join(self.sample_path, '{}_{}_fake.png'.format(e+1, i+1)),nrow=1, padding=0)
-                print('Translated images and saved into {}..!'.format(self.sample_path))
+                print(('Translated images and saved into {}..!'.format(self.sample_path)))
 
             # Save model checkpoints
             if (e+1) % self.model_save_step == 0:
@@ -2104,7 +2104,7 @@ class Solver(object):
                 d_lr = max(1e-5, d_lr)
                 e_lr = max(1e-5, e_lr)
                 self.update_lr(g_lr, d_lr, e_lr)
-                print ('Decay learning rate to g_lr: {}, d_lr: {}.'.format(g_lr, d_lr))
+                print(('Decay learning rate to g_lr: {}, d_lr: {}.'.format(g_lr, d_lr)))
 
     def train_multi(self):
         """Train StarGAN with multiple datasets.
@@ -2338,12 +2338,12 @@ class Solver(object):
                 log = "Elapsed [{}], Iter [{}/{}]".format(
                     elapsed, i+1, self.num_iters)
 
-                for tag, value in loss.items():
+                for tag, value in list(loss.items()):
                     log += ", {}: {:.4f}".format(tag, value)
                 print(log)
 
                 if self.use_tensorboard:
-                    for tag, value in loss.items():
+                    for tag, value in list(loss.items()):
                         self.logger.scalar_summary(tag, value, i+1)
 
             # Translate the images (debugging)
@@ -2377,7 +2377,7 @@ class Solver(object):
                 g_lr -= (self.g_lr / float(self.num_iters_decay) * decay_step)
                 d_lr -= (self.d_lr / float(self.num_iters_decay) * decay_step)
                 self.update_lr(g_lr, d_lr)
-                print ('Decay learning rate to g_lr: {}, d_lr: {}.'.format(g_lr, d_lr))
+                print(('Decay learning rate to g_lr: {}, d_lr: {}.'.format(g_lr, d_lr)))
 
     def test(self):
         # Load trained parameters
@@ -2396,4 +2396,4 @@ class Solver(object):
             fake_images = torch.cat(fake_image_list, dim=3)
             save_image(self.denorm(fake_images.data),
                 os.path.join(self.sample_path, '{}_fake.png'.format(i+1)),nrow=1, padding=0)
-            print('Translated test images and saved into {}..!'.format(self.result_path))
+            print(('Translated test images and saved into {}..!'.format(self.result_path)))

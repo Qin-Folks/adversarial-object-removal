@@ -25,7 +25,7 @@ class CocoDatasetBBoxSample(Dataset):
         self.mode = mode
         self.n_boxes = n_boxes
         self.iouThresh = 0.5
-        self.dataset = json.load(open(os.path.join('data','coco',datafile),'r'))
+        self.dataset = json.load(open(os.path.join('..', 'data','coco',datafile),'r'))
         self.num_data = len(self.dataset['images'])
         self.attr2idx = {}
         self.idx2attr = {}
@@ -239,7 +239,10 @@ class CocoDatasetBBoxSample(Dataset):
         else:
             returnvals = self.getbyIndexAndclassAugmentMode(index)
 
+        # try:
         return tuple(returnvals)
+        # except:
+        #     return -1
 
     def getbyIdAndclass(self, imgid, cls, hflip=0):
         index = self.imgId2idx[imgid]
@@ -248,8 +251,10 @@ class CocoDatasetBBoxSample(Dataset):
         return tuple(returnvals)
 
     def getbyIndexAndclass(self, index, cid):
-
+        # try:
         image = Image.open(os.path.join(self.image_path,self.dataset['images'][index]['filepath'], self.dataset['images'][index]['filename']))
+        # except:
+        #     return None
         currCls = self.selected_attrs[cid[0]]
         if image.mode != 'RGB':
             #print image.mode
@@ -2165,10 +2170,10 @@ class CocoDataset(Dataset):
 
 class CocoMaskDataset(Dataset):
     def __init__(self, transform, mode, select_attrs=[], balance_classes=0, n_masks_perclass=-1):
-        self.data_path = os.path.join('data','coco')
+        self.data_path = os.path.join('..', 'data', 'coco')
         self.transform = transform
         self.mode = mode
-        filename = 'instances_train2014.json' if mode=='train' else  'instances_val2014.json'
+        filename = 'instances_train2014.json' if mode=='train' else 'instances_val2014.json'
         self.dataset =  COCOTool(os.path.join(self.data_path, filename))
         self.selected_attrs = ['person', 'book', 'car', 'bird', 'chair'] if select_attrs== [] else select_attrs
         valid_ids = []

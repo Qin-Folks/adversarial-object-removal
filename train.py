@@ -245,7 +245,8 @@ if __name__ == '__main__':
     parser.add_argument('--model_save_step', type=int, default=2)
 
     config = parser.parse_args()
-    config.dataset = 'mnist'
+    config.dataset = 'coco'
+    # config.pretrained_model = 'pretrained/coco_pretrained.tar'
     config.sample_path = os.path.join(config.sample_path, config.fappend)
     config.result_path = os.path.join(config.result_path, config.fappend)
     config.model_save_path = os.path.join(config.model_save_path, config.fappend)

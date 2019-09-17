@@ -102,7 +102,7 @@ class ResidualBlock(nn.Module):
 
         layers.extend([ nn.Conv2d(dim_in, dim_in, kernel_size=3, stride=1, padding=pad, dilation=dilation, bias=False),
             nn.InstanceNorm2d(dim_in, affine=True),
-            nn.LeakyReLU(0.1,inplace=False)])
+            nn.LeakyReLU(0.1,inplace=True)])
 
         pad = dilation
         if padtype== 'reflection':
@@ -113,7 +113,7 @@ class ResidualBlock(nn.Module):
         layers.extend([
             nn.Conv2d(dim_in, dim_in, kernel_size=3, stride=1, padding=pad, dilation=dilation, bias=False),
             nn.InstanceNorm2d(dim_in, affine=True),
-            nn.LeakyReLU(0.1,inplace=False)
+            nn.LeakyReLU(0.1,inplace=True)
             ])
 
         self.main = nn.Sequential(*layers)
@@ -134,7 +134,7 @@ class ResidualBlockBnorm(nn.Module):
 
         layers.extend([ nn.Conv2d(dim_in, dim_in, kernel_size=3, stride=1, padding=pad, dilation=dilation, bias=False),
             nn.BatchNorm2d(dim_in, affine=True),
-            nn.LeakyReLU(0.1,inplace=False)])
+            nn.LeakyReLU(0.1,inplace=True)])
 
         pad = dilation
         if padtype== 'reflection':
@@ -145,7 +145,7 @@ class ResidualBlockBnorm(nn.Module):
         layers.extend([
             nn.Conv2d(dim_in, dim_in, kernel_size=3, stride=1, padding=pad, dilation=dilation, bias=False),
             nn.BatchNorm2d(dim_in, affine=True),
-            nn.LeakyReLU(0.1,inplace=False)
+            nn.LeakyReLU(0.1,inplace=True)
             ])
 
         self.main = nn.Sequential(*layers)
@@ -165,7 +165,7 @@ class ResidualBlockNoNorm(nn.Module):
             layers.append(nn.ReplicationPad2d(p)); pad=0
 
         layers.extend([ nn.Conv2d(dim_in, dim_in, kernel_size=3, stride=1, padding=pad, dilation=dilation, bias=False),
-            nn.LeakyReLU(0.1,inplace=False)])
+            nn.LeakyReLU(0.1,inplace=True)])
 
         pad = dilation
         if padtype== 'reflection':
@@ -175,7 +175,7 @@ class ResidualBlockNoNorm(nn.Module):
 
         layers.extend([
             nn.Conv2d(dim_in, dim_in, kernel_size=3, stride=1, padding=pad, dilation=dilation, bias=False),
-            nn.LeakyReLU(0.1,inplace=False)
+            nn.LeakyReLU(0.1,inplace=True)
             ])
 
         self.main = nn.Sequential(*layers)
@@ -230,14 +230,14 @@ class GeneratorDiff(nn.Module):
         layers = []
         layers.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         layers.append(nn.InstanceNorm2d(conv_dim, affine=True))
-        layers.append(nn.ReLU(inplace=False))
+        layers.append(nn.ReLU(inplace=True))
 
         # Down-Sampling
         curr_dim = conv_dim
         for i in range(2):
             layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
             layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True))
-            layers.append(nn.ReLU(inplace=False))
+            layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
 
         # Bottleneck
@@ -248,7 +248,7 @@ class GeneratorDiff(nn.Module):
         for i in range(2):
             layers.append(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
             layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True))
-            layers.append(nn.ReLU(inplace=False))
+            layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
         layers.append(nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, bias=False))
@@ -276,14 +276,14 @@ class GeneratorDiffWithInp(nn.Module):
         layers = []
         layers.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         layers.append(nn.InstanceNorm2d(conv_dim, affine=True))
-        layers.append(nn.ReLU(inplace=False))
+        layers.append(nn.ReLU(inplace=True))
 
         # Down-Sampling
         curr_dim = conv_dim
         for i in range(2):
             layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
             layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True))
-            layers.append(nn.ReLU(inplace=False))
+            layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
 
         # Bottleneck
@@ -297,7 +297,7 @@ class GeneratorDiffWithInp(nn.Module):
         for i in range(2):
             self.up_sampling_convlayers.append(nn.ConvTranspose2d(curr_dim+3, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
             self.up_sampling_inorm.append(nn.InstanceNorm2d(curr_dim//2, affine=True))
-            self.up_sampling_ReLU.append(nn.ReLU(inplace=False))
+            self.up_sampling_ReLU.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
         self.final_Layer = nn.Conv2d(curr_dim+3, 3, kernel_size=7, stride=1, padding=3, bias=False)
@@ -339,14 +339,14 @@ class GeneratorDiffAndMask(nn.Module):
         layers = []
         layers.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         layers.append(nn.InstanceNorm2d(conv_dim, affine=True))
-        layers.append(nn.ReLU(inplace=False))
+        layers.append(nn.ReLU(inplace=True))
 
         # Down-Sampling
         curr_dim = conv_dim
         for i in range(2):
             layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
             layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True))
-            layers.append(nn.ReLU(inplace=False))
+            layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
 
         # Bottleneck
@@ -365,12 +365,12 @@ class GeneratorDiffAndMask(nn.Module):
         for i in range(2):
             self.up_sampling_convlayers.append(nn.ConvTranspose2d(curr_dim+3, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
             self.up_sampling_inorm.append(nn.InstanceNorm2d(curr_dim//2, affine=True))
-            self.up_sampling_ReLU.append(nn.ReLU(inplace=False))
+            self.up_sampling_ReLU.append(nn.ReLU(inplace=True))
 
             ## Add the mask path
             self.up_sampling_convlayers_mask.append(nn.ConvTranspose2d(curr_dim+3, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
             self.up_sampling_inorm_mask.append(nn.InstanceNorm2d(curr_dim//2, affine=True))
-            self.up_sampling_ReLU_mask.append(nn.ReLU(inplace=False))
+            self.up_sampling_ReLU_mask.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
         self.final_Layer = nn.Conv2d(curr_dim+3, 3, kernel_size=7, stride=1, padding=3, bias=False)
@@ -423,14 +423,14 @@ class GeneratorDiffAndMask_V2(nn.Module):
         layers = []
         layers.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         layers.append(nn.InstanceNorm2d(conv_dim, affine=True))
-        layers.append(nn.ReLU(inplace=False))
+        layers.append(nn.ReLU(inplace=True))
 
         # Down-Sampling
         curr_dim = conv_dim
         for i in range(2):
             layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
             layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True))
-            layers.append(nn.ReLU(inplace=False))
+            layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
 
         # Bottleneck
@@ -445,7 +445,7 @@ class GeneratorDiffAndMask_V2(nn.Module):
         for i in range(2):
             self.up_sampling_convlayers.append(nn.ConvTranspose2d(curr_dim+3, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
             self.up_sampling_inorm.append(nn.InstanceNorm2d(curr_dim//2, affine=True))
-            self.up_sampling_ReLU.append(nn.ReLU(inplace=False))
+            self.up_sampling_ReLU.append(nn.ReLU(inplace=True))
 
             curr_dim = curr_dim // 2
 
@@ -513,7 +513,7 @@ def get_conv_inorm_relu_block(i, o, k, s, p, slope=0.1, padtype='zero', dilation
         layers.append(nn.ReplicationPad2d(p)); p=0
     layers.append(nn.Conv2d(i, o, kernel_size=k, stride=s, padding=p, dilation=dilation, bias=False))
     layers.append(nn.InstanceNorm2d(o, affine=True))
-    layers.append(nn.LeakyReLU(slope,inplace=False))
+    layers.append(nn.LeakyReLU(slope,inplace=True))
     return layers
 
 class GeneratorOnlyMask(nn.Module):
@@ -546,7 +546,7 @@ class GeneratorOnlyMask(nn.Module):
         for i in range(3):
             self.up_sampling_convlayers.append(nn.ConvTranspose2d(curr_dim+3, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
             self.up_sampling_inorm.append(nn.InstanceNorm2d(curr_dim//2, affine=True))
-            self.up_sampling_ReLU.append(nn.ReLU(inplace=False))
+            self.up_sampling_ReLU.append(nn.ReLU(inplace=True))
 
             curr_dim = curr_dim // 2
 
@@ -667,7 +667,7 @@ class GeneratorMaskAndFeat(nn.Module):
                 elif up_sampling_type == 'bilinear':
                     self.up_sampling_convlayers.append(AdaptiveScaleTconv(curr_dim+extra_dim, curr_dim//2, scale=2, use_deform=False, n_filters=n_upsamp_filt))
                 self.up_sampling_inorm.append(nn.InstanceNorm2d(curr_dim//2, affine=True))
-                self.up_sampling_ReLU.append(nn.ReLU(inplace=False))
+                self.up_sampling_ReLU.append(nn.ReLU(inplace=True))
             else:
                 # In this case just use more residual blocks to drop dimensions
                 self.up_sampling_convlayers.append(nn.Sequential(*get_conv_inorm_relu_block(curr_dim+extra_dim, curr_dim//2, 3, 1, 1, padtype='zero')))
@@ -913,13 +913,13 @@ class GeneratorMaskAndFeat_ImNetBackbone_V2(nn.Module):
         if self.cond_parallel_track:
             cond_parallel_layers = [] #nn.ModuleList()
             cond_parallel_layers.append(nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1))
-            cond_parallel_layers.append(nn.LeakyReLU(0.1, inplace=False))
+            cond_parallel_layers.append(nn.LeakyReLU(0.1, inplace=True))
             cond_parallel_layers.append(nn.Conv2d(64, self.cond_parallel_track, kernel_size=3, stride=1, padding=1))
-            cond_parallel_layers.append(nn.LeakyReLU(0.1, inplace=False))
+            cond_parallel_layers.append(nn.LeakyReLU(0.1, inplace=True))
             self.cond_parallel_layers = nn.Sequential(*cond_parallel_layers)
 
         layers.append(nn.Conv2d(512+extra_dim + gt_cond_dim, start_dim, kernel_size=3, stride=1, padding=1))
-        layers.append(nn.LeakyReLU(0.1, inplace=False))
+        layers.append(nn.LeakyReLU(0.1, inplace=True))
         layers.append(ResBlock(dim_in=start_dim,dilation=1, padtype='zero'))
         #layers.append(nn.Upsample(scale_factor=2, mode='nearest'))
         #-----------------------------------------------------------
@@ -927,14 +927,14 @@ class GeneratorMaskAndFeat_ImNetBackbone_V2(nn.Module):
         # Upsample to 32x32
         layers.append(nn.Conv2d(start_dim+extra_dim, start_dim//2, kernel_size=3, stride=1, padding=1))
         start_dim = start_dim // 2
-        layers.append(nn.LeakyReLU(0.1, inplace=False))
+        layers.append(nn.LeakyReLU(0.1, inplace=True))
         layers.append(ResBlock(dim_in=start_dim,dilation=1, padtype='zero'))
         #-----------------------------------------------------------
         # Third layer
         # This takes input features of 256x32x32 from Layer 1 and 256x32x32 from VGG
         layers.append(nn.Conv2d(start_dim+extra_dim, start_dim//2, kernel_size=3, stride=1, padding=1))
         start_dim = start_dim // 2
-        layers.append(nn.LeakyReLU(0.1, inplace=False))
+        layers.append(nn.LeakyReLU(0.1, inplace=True))
         layers.append(ResBlock(dim_in=start_dim,dilation=1, padtype='zero'))
 
         self.layers = layers
@@ -1061,7 +1061,7 @@ class GeneratorBoxReconst(nn.Module):
                 layers.append(AdaptiveScaleTconv(curr_dim+(self.gen_full_image * curr_dim//2), curr_dim//2, scale=2, use_deform=False))
 
             layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True))
-            layers.append(nn.LeakyReLU(0.1,inplace=False))
+            layers.append(nn.LeakyReLU(0.1,inplace=True))
             curr_dim = curr_dim // 2
 
         pad=3
@@ -1189,12 +1189,12 @@ class Discriminator_SN(nn.Module):
 
         layers = []
         layers.append(SpectralNorm(nn.Conv2d(3, conv_dim, kernel_size=4, stride=init_stride, padding=1)))
-        layers.append(nn.LeakyReLU(0.01, inplace=False))
+        layers.append(nn.LeakyReLU(0.01, inplace=True))
 
         curr_dim = conv_dim
         for i in range(1, repeat_num):
             layers.append(SpectralNorm(nn.Conv2d(curr_dim,min(curr_dim * 2, 1024) , kernel_size=4, stride=2, padding=1)))
-            layers.append(nn.LeakyReLU(0.01, inplace=False))
+            layers.append(nn.LeakyReLU(0.01, inplace=True))
             curr_dim = min(curr_dim * 2, 1024)
 
         k_size = int(image_size / np.power(2, repeat_num)) + 2- init_stride
@@ -1215,12 +1215,12 @@ class DiscriminatorSmallPatch(nn.Module):
 
         layers = []
         layers.append(nn.Conv2d(3, conv_dim, kernel_size=4, stride=1, padding=1))
-        layers.append(nn.LeakyReLU(0.01, inplace=False))
+        layers.append(nn.LeakyReLU(0.01, inplace=True))
 
         curr_dim = conv_dim
         for i in range(1, repeat_num):
             layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1))
-            layers.append(nn.LeakyReLU(0.01, inplace=False))
+            layers.append(nn.LeakyReLU(0.01, inplace=True))
             curr_dim = curr_dim * 2
 
         k_size = int(image_size / np.power(2, repeat_num))
@@ -1244,19 +1244,19 @@ class DiscriminatorGAP(nn.Module):
         self.c_dim = c_dim
         layers.append(nn.Conv2d(nc, conv_dim, kernel_size=3, stride=1, padding=1))
         layers.append(nn.BatchNorm2d(conv_dim))
-        layers.append(nn.LeakyReLU(0.1, inplace=False))
+        layers.append(nn.LeakyReLU(0.1, inplace=True))
         layers.append(nn.Conv2d(conv_dim, conv_dim, kernel_size=3, stride=1, padding=1))
         layers.append(nn.MaxPool2d(2))
         if use_bnorm:
             layers.append(nn.BatchNorm2d(conv_dim))
-        layers.append(nn.LeakyReLU(0.1, inplace=False))
+        layers.append(nn.LeakyReLU(0.1, inplace=True))
 
         curr_dim = conv_dim
         for i in range(1, repeat_num):
             out_dim =  curr_dim*2 if max_filters is None else min(curr_dim*2, max_filters)
             layers.append(nn.Conv2d(curr_dim, out_dim, kernel_size=3, stride=1, padding=1))
             layers.append(nn.BatchNorm2d(out_dim))
-            layers.append(nn.LeakyReLU(0.1, inplace=False))
+            layers.append(nn.LeakyReLU(0.1, inplace=True))
             layers.append(ResidualBlockBnorm(dim_in=out_dim, dilation=1, padtype='zero'))
             if (i < 4):
                 # We want to have 8x8 resolution vefore GAP input
@@ -1323,13 +1323,13 @@ class DiscriminatorGAP_ImageNet_Weldon(nn.Module):
         self.mink = mink
         nFilt = 512 if max_filters is None else max_filters
         self.pnet = Vgg19(only_last=True) if net_type == 'vgg19' else None
-        layers.append(nn.LeakyReLU(0.1, inplace=False))
+        layers.append(nn.LeakyReLU(0.1, inplace=True))
         layers.append(nn.Conv2d(512, nFilt, kernel_size=3, stride=1, padding=1))
         layers.append(nn.BatchNorm2d(nFilt))
-        layers.append(nn.LeakyReLU(0.1, inplace=False))
+        layers.append(nn.LeakyReLU(0.1, inplace=True))
         layers.append(nn.Conv2d(nFilt, nFilt, kernel_size=3, stride=1, padding=1))
         layers.append(nn.BatchNorm2d(nFilt))
-        layers.append(nn.LeakyReLU(0.1, inplace=False))
+        layers.append(nn.LeakyReLU(0.1, inplace=True))
         self.layers = nn.Sequential(*layers)
         #self.AggrConv = nn.conv2d(nFilt, c_dim, kernel_size=1, stride=1, bias=False)
         self.classifyConv = nn.Conv2d(nFilt, c_dim, kernel_size=1, stride=1, bias=use_bias)
@@ -1365,12 +1365,12 @@ class DiscriminatorBBOX(nn.Module):
 
         layers = []
         layers.append(nn.Conv2d(3, conv_dim, kernel_size=4, stride=2, padding=1))
-        layers.append(nn.LeakyReLU(0.01, inplace=False))
+        layers.append(nn.LeakyReLU(0.01, inplace=True))
 
         curr_dim = conv_dim
         for i in range(1, repeat_num):
             layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1))
-            layers.append(nn.LeakyReLU(0.01, inplace=False))
+            layers.append(nn.LeakyReLU(0.01, inplace=True))
             curr_dim = curr_dim * 2
 
         k_size = int(image_size / np.power(2, repeat_num))
@@ -1390,22 +1390,22 @@ class DiscriminatorGlobalLocal(nn.Module):
         maxFilt = 512 if image_size==128 else 128
         globalLayers = []
         globalLayers.append(nn.Conv2d(nc, conv_dim, kernel_size=4, stride=2, padding=1,bias=False))
-        globalLayers.append(nn.LeakyReLU(0.2, inplace=False))
+        globalLayers.append(nn.LeakyReLU(0.2, inplace=True))
 
         localLayers = []
         localLayers.append(nn.Conv2d(nc, conv_dim, kernel_size=4, stride=2, padding=1, bias=False))
-        localLayers.append(nn.LeakyReLU(0.2, inplace=False))
+        localLayers.append(nn.LeakyReLU(0.2, inplace=True))
 
         curr_dim = conv_dim
         for i in range(1, repeat_num_global):
             globalLayers.append(nn.Conv2d(curr_dim, min(curr_dim*2,maxFilt), kernel_size=4, stride=2, padding=1, bias=False))
-            globalLayers.append(nn.LeakyReLU(0.2, inplace=False))
+            globalLayers.append(nn.LeakyReLU(0.2, inplace=True))
             curr_dim = min(curr_dim * 2, maxFilt)
 
         curr_dim = conv_dim
         for i in range(1, repeat_num_local):
             localLayers.append(nn.Conv2d(curr_dim, min(curr_dim * 2, maxFilt), kernel_size=4, stride=2, padding=1, bias=False))
-            localLayers.append(nn.LeakyReLU(0.2, inplace=False))
+            localLayers.append(nn.LeakyReLU(0.2, inplace=True))
             curr_dim = min(curr_dim * 2, maxFilt)
 
         k_size_local = int(bbox_size/ np.power(2, repeat_num_local))
@@ -1440,22 +1440,22 @@ class DiscriminatorGlobalLocal_SN(nn.Module):
         maxFilt = 512 if image_size==128 else 128
         globalLayers = []
         globalLayers.append(SpectralNorm(nn.Conv2d(nc, conv_dim, kernel_size=4, stride=2, padding=1,bias=False)))
-        globalLayers.append(nn.LeakyReLU(0.2, inplace=False))
+        globalLayers.append(nn.LeakyReLU(0.2, inplace=True))
 
         localLayers = []
         localLayers.append(SpectralNorm(nn.Conv2d(nc, conv_dim, kernel_size=4, stride=2, padding=1, bias=False)))
-        localLayers.append(nn.LeakyReLU(0.2, inplace=False))
+        localLayers.append(nn.LeakyReLU(0.2, inplace=True))
 
         curr_dim = conv_dim
         for i in range(1, repeat_num_global):
             globalLayers.append(SpectralNorm(nn.Conv2d(curr_dim, min(curr_dim*2,maxFilt), kernel_size=4, stride=2, padding=1, bias=False)))
-            globalLayers.append(nn.LeakyReLU(0.2, inplace=False))
+            globalLayers.append(nn.LeakyReLU(0.2, inplace=True))
             curr_dim = min(curr_dim * 2, maxFilt)
 
         curr_dim = conv_dim
         for i in range(1, repeat_num_local):
             localLayers.append(SpectralNorm(nn.Conv2d(curr_dim, min(curr_dim * 2, maxFilt), kernel_size=4, stride=2, padding=1, bias=False)))
-            localLayers.append(nn.LeakyReLU(0.2, inplace=False))
+            localLayers.append(nn.LeakyReLU(0.2, inplace=True))
             curr_dim = min(curr_dim * 2, maxFilt)
 
         k_size_local = int(bbox_size/ np.power(2, repeat_num_local))
@@ -1490,7 +1490,7 @@ class BoxFeatEncoder(nn.Module):
         layers.append(nn.Conv2d(nc+c_dim, conv_dim, kernel_size=k, stride=2, padding=1))
         if norm_type == 'instance':
             layers.append(nn.InstanceNorm2d(conv_dim, affine=True))
-        layers.append(nn.LeakyReLU(0.01, inplace=False))
+        layers.append(nn.LeakyReLU(0.01, inplace=True))
         if norm_type == 'drop':
             layers.append(nn.Dropout(p=0.25))
 
@@ -1499,7 +1499,7 @@ class BoxFeatEncoder(nn.Module):
             layers.append(nn.Conv2d(curr_dim, min(curr_dim*2,maxFilt), kernel_size=k, stride=2, padding=1))
             if norm_type == 'instance':
                 layers.append(nn.InstanceNorm2d(min(curr_dim*2,maxFilt), affine=True))
-            layers.append(nn.LeakyReLU(0.01, inplace=False))
+            layers.append(nn.LeakyReLU(0.01, inplace=True))
             if norm_type == 'drop':
                 layers.append(nn.Dropout(p=0.25))
             curr_dim = min(curr_dim * 2, maxFilt)
@@ -1559,7 +1559,7 @@ class BoxFeatGenerator(nn.Module):
         self.main= nn.Sequential(*layers)
 
         fclayers.append(nn.Linear(curr_dim*(k_size**2), feat_dim*2, bias=False))
-        fclayers.append(nn.LeakyReLU(0.01,inplace=False))
+        fclayers.append(nn.LeakyReLU(0.01,inplace=True))
 
         # FC 1 for doing real/fake
         fclayers.append(nn.Linear(feat_dim*2, feat_dim, bias=False))

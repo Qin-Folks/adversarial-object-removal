@@ -3,7 +3,21 @@ import argparse
 from solver import Solver
 from utils.data_loader_stargan import get_loader
 from torch.backends import cudnn
+import GPUtil
 
+cuda_id = "2"
+
+cwd = os.getcwd()
+if 'dijkstra' in cwd:
+    cuda_id = "2"
+else:
+    cuda_id = "0"
+
+gpu_idx = GPUtil.getAvailable(order='last', limit=1, maxLoad=0.5, includeNan=False, excludeID=[], excludeUUID=[])
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+if cuda_id is None:
+    cuda_id = str(gpu_idx[0])
+os.environ["CUDA_VISIBLE_DEVICES"] = cuda_id
 
 def str2bool(v):
     return v.lower() in ('true')
@@ -242,14 +256,18 @@ if __name__ == '__main__':
     # Step size
     parser.add_argument('--log_step', type=int, default=10)
     parser.add_argument('--sample_step', type=int, default=500)
-    parser.add_argument('--model_save_step', type=int, default=2)
+    parser.add_argument('--model_save_step', type=int, default=1000)
 
     config = parser.parse_args()
     config.dataset = 'coco'
+    config.batch_size = 20
+    config.sample_step = 100
+    config.num_epochs = 1000
     # config.pretrained_model = 'pretrained/coco_pretrained.tar'
     config.sample_path = os.path.join(config.sample_path, config.fappend)
     config.result_path = os.path.join(config.result_path, config.fappend)
     config.model_save_path = os.path.join(config.model_save_path, config.fappend)
+
 
     print(config)
 

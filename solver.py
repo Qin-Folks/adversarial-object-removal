@@ -21,6 +21,20 @@ import gc
 import random
 from utils.utils import show
 from collections import OrderedDict
+import GPUtil
+
+cuda_id = "2"
+cwd = os.getcwd()
+if 'dijkstra' in cwd:
+    cuda_id = "2"
+else:
+    cuda_id = "0"
+
+gpu_idx = GPUtil.getAvailable(order='last', limit=1, maxLoad=0.5, includeNan=False, excludeID=[], excludeUUID=[])
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+if cuda_id is None:
+    cuda_id = str(gpu_idx[0])
+os.environ["CUDA_VISIBLE_DEVICES"] = cuda_id
 
 
 ###############################################################################
@@ -956,7 +970,9 @@ class Solver(object):
                         g_loss_cls = F.cross_entropy(out_cls, fake_label)
 
                     # Backward + Optimize
-                    g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_cls * g_loss_cls + self.lambda_vggloss * g_loss_vgg + self.lambda_smoothloss * g_smooth_loss
+                    # g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_cls * g_loss_cls + self.lambda_vggloss * g_loss_vgg + self.lambda_smoothloss * g_smooth_loss
+                    g_loss = g_loss_fake
+
                     # Add L1 loss to keep the difference image from going beyond boundaries
 
                     if self.differential_generator:
@@ -964,6 +980,7 @@ class Solver(object):
                             torch.abs(fake_x))).mean()
                         g_loss += g_loss_abs
 
+                    torch.autograd.set_detect_anomaly(True)
                     self.reset_grad()
                     g_loss.backward()
                     self.g_optimizer.step()
@@ -998,9 +1015,10 @@ class Solver(object):
 
                 # Translate fixed images for debugging
                 if (i + 1) % self.sample_step == 0:
-                    fake_image_list = [fixed_x]
-                    for fixed_c in fixed_c_list:
-                        fake_image_list.append(self.G(fixed_x, fixed_c))
+                    fake_image_list = []
+                    fake_image_list = [fixed_x[:5]]
+                    for fixed_c in fixed_c_list[:2]:
+                        fake_image_list.append(self.G(fixed_x[:5], fixed_c[:5]))
                     fake_images = torch.cat(fake_image_list, dim=3)
                     save_image(self.denorm(fake_images.data),
                                os.path.join(self.sample_path, '{}_{}_fake.png'.format(e + 1, i + 1)), nrow=1, padding=0)
